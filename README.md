@@ -46,6 +46,7 @@ drivers for both Windows (`convert_all.bat`) and macOS/Linux
 ```
 .
 ├── CropCut/              # Python desktop video editor
+├── m2ts_to_mp4/          # Batch m2ts → mp4 converter w/ JP→EN SRT
 ├── memWatch/             # macOS SwiftUI memory monitor
 ├── PLY Viewer/           # Windows OpenGL PLY viewer
 └── README.md             # This file
