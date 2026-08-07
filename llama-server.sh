@@ -1,1 +1,0 @@
- llama-server -hf bartowski/Qwen_Qwen3.6-35B-A3B-GGUF:IQ2_XS --host 0.0.0.0 --port 8888
