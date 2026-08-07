@@ -1,0 +1,1567 @@
+#!/usr/bin/env python3
+"""
+Job Application Tracker Web Server
+Serves an elegant dashboard to manage job applications.
+Run: python3 job_tracker_server.py
+Open: http://localhost:8765
+"""
+
+import json
+import os
+import re
+from datetime import datetime, timedelta
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+
+TRACKER_FILE = "/Users/amgad/Desktop/Ai/Hermes/job_applications.md"
+REPORT_FILE = "/Users/amgad/Desktop/Ai/Hermes/linkedin_jobs_montreal_southshore.md"
+
+# South Shore cities (highest priority)
+SOUTH_SHORE = ['brossard', 'longueuil', 'saint-lambert', 'boucherville', 'saint-hubert', 
+               'saint-bruno', 'la prairie', 'saint-constant', 'chambly', 'candiac', 
+               'delson', 'sainte-catherine', 'greenfield park']
+ 
+def parse_linkedin_report():
+    """Parse the LinkedIn report and return pending jobs with date info for grouping"""
+    if not os.path.exists(REPORT_FILE):
+        return [], ''
+    
+    with open(REPORT_FILE, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Extract the report generation date from the file header
+    report_date = ''
+    generated_match = re.search(r'\*\*Generated:\*\* (\d{4}-\d{2}-\d{2})', content)
+    if generated_match:
+        report_date = generated_match.group(1)
+    else:
+        report_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # Get report date for date bucket calculation
+    report_datetime = datetime.strptime(report_date, '%Y-%m-%d') if report_date else datetime.now()
+    
+    # Map month names to numbers
+    month_map = {
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    }
+    
+    def parse_posted_date(posted_str):
+        """Parse posted date like 'Jul 15' relative to report date"""
+        if not posted_str:
+            return 3, posted_str
+        posted_str = posted_str.strip().lower()
+        try:
+            parts = posted_str.split()
+            if len(parts) >= 2:
+                month_str = parts[0][:3]
+                day = int(parts[1])
+                month = month_map.get(month_str, 7)
+                posted_date = datetime(report_datetime.year, month, day)
+                days_ago = (report_datetime.date() - posted_date.date()).days
+                
+                if days_ago == 0:
+                    return 0, posted_str  # Same day as report
+                elif days_ago == 1:
+                    return 1, posted_str  # Day before report
+                elif days_ago <= 7:
+                    return 2, posted_str  # Within a week
+                else:
+                    return 3, posted_str  # Older
+        except:
+            pass
+        return 3, posted_str
+
+    def normalize_job_link(link_str):
+        """Normalize markdown links and detect easy apply labels."""
+        if not link_str:
+            return '', False
+        link_str = link_str.strip()
+        match = re.match(r'\[([^\]]+)\]\((https?://[^\)]+)\)', link_str)
+        if match:
+            label = match.group(1).strip().lower()
+            url = match.group(2).strip()
+            return url, 'easy apply' in label
+        return link_str.replace(')', '').strip(), 'easy apply' in link_str.lower()
+    
+    # Get already applied companies from tracker
+    applied_companies = set()
+    if os.path.exists(TRACKER_FILE):
+        with open(TRACKER_FILE, 'r', encoding='utf-8') as f:
+            tracker_content = f.read()
+        for line in tracker_content.split('\n'):
+            if line.startswith('|') and 'Applied' in line:
+                parts = [p.strip() for p in line.split('|')]
+                if len(parts) > 3 and parts[3]:
+                    applied_companies.add(parts[3].lower())
+    
+    jobs = []
+    lines = content.split('\n')
+    in_senior = False
+    in_fullstack = False
+    
+    for line in lines:
+        if line.startswith('## Senior Developer'):
+            in_senior = True
+            in_fullstack = False
+            continue
+        if line.startswith('## Full Stack Developer'):
+            in_fullstack = True
+            in_senior = False
+            continue
+        if line.startswith('##'):
+            in_senior = False
+            in_fullstack = False
+            
+        if line.startswith('|') and not line.startswith('| #') and not line.startswith('|---'):
+            parts = [p.strip() for p in line.split('|')]
+            if len(parts) >= 7 and parts[1] and parts[1].isdigit():
+                try:
+                    job_num = int(parts[1])
+                    if parts[2] == '---' or parts[2].startswith('---'):
+                        continue
+                    fit = parts[2].strip()
+                    fit_score = 0
+                    if fit.startswith('⭐'):
+                        fit_score = int(fit.replace('⭐', '').replace('**', '').strip())
+                    elif fit.startswith(' '):
+                        fit_score = int(fit.strip()) if fit.strip().lstrip('-').isdigit() else 0
+                    
+                    title = parts[3].strip()
+                    company = parts[4].strip()
+                    location = parts[5].strip()
+                    area = parts[6].strip()
+                    posted = parts[7].strip()
+                    raw_link = parts[8].strip() if len(parts) > 8 else ''
+                    link, easy_apply = normalize_job_link(raw_link)
+                    
+                    if company.lower() in applied_companies:
+                        continue
+                    
+                    # Determine date bucket and display date
+                    date_bucket, display_date = parse_posted_date(posted)
+                    
+                    # Determine area priority
+                    area_lower = area.lower()
+                    if 'south shore' in area_lower or 'brossard' in location.lower():
+                        priority = 1
+                    elif 'montreal' in area_lower or 'montreal' in location.lower():
+                        priority = 2
+                    elif 'laval' in area_lower:
+                        priority = 4
+                    else:
+                        priority = 3
+                    
+                    jobs.append({
+                        'num': job_num,
+                        'fit': fit_score,
+                        'title': title,
+                        'company': company,
+                        'location': location,
+                        'area': area,
+                        'posted': posted,
+                        'display_date': display_date,
+                        'link': link,
+                        'easy_apply': easy_apply,
+                        'priority': priority,
+                        'date_bucket': date_bucket,
+                        'section': 'Senior' if in_senior else 'Full Stack'
+                    })
+                except:
+                    pass
+    
+    # The report can repeat a listing in multiple role sections. Keep one copy
+    # per company/title pair, preferring the newer/more relevant entry.
+    unique_jobs = {}
+    for job in jobs:
+        key = (
+            re.sub(r'\s+', ' ', job['company']).strip().casefold(),
+            re.sub(r'\s+', ' ', job['title']).strip().casefold(),
+        )
+        existing = unique_jobs.get(key)
+        if existing is None:
+            unique_jobs[key] = job
+            continue
+
+        should_replace = False
+        if existing['link'] and not job['link']:
+            should_replace = False
+        elif not existing['link'] and job['link']:
+            should_replace = True
+        elif job['date_bucket'] < existing['date_bucket']:
+            should_replace = True
+        elif job['date_bucket'] == existing['date_bucket'] and job['fit'] > existing['fit']:
+            should_replace = True
+        elif job['date_bucket'] == existing['date_bucket'] and job['fit'] == existing['fit'] and job['priority'] < existing['priority']:
+            should_replace = True
+
+        if should_replace:
+            unique_jobs[key] = job
+
+    # Sort by area priority, then fit score (keep date info for display)
+    jobs = list(unique_jobs.values())
+    jobs.sort(key=lambda x: (x['priority'], -x['fit']))
+
+    return jobs, report_date
+
+HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c3aed'/%3E%3Cpath d='M18 20h28v6H18zM18 30h20v6H18zM18 40h14v6H18z' fill='white'/%3E%3C/svg%3E">
+    <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c3aed'/%3E%3Cpath d='M18 20h28v6H18zM18 30h20v6H18zM18 40h14v6H18z' fill='white'/%3E%3C/svg%3E">
+    <title>Job Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d0d0f;
+            --bg-secondary: #16161a;
+            --bg-tertiary: #1e1e24;
+            --bg-card: #1a1a1f;
+            --accent: #7c3aed;
+            --accent-hover: #8b5cf6;
+            --accent-glow: rgba(124, 58, 237, 0.3);
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .last-updated {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .stat-card.total { border-left: 3px solid var(--accent); }
+        .stat-card.applied { border-left: 3px solid var(--info); }
+        .stat-card.interview { border-left: 3px solid var(--warning); }
+        .stat-card.offer { border-left: 3px solid var(--success); }
+        .stat-card.rejected { border-left: 3px solid var(--danger); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        /* Date Section Headers */
+        .date-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .date-section-header {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent);
+            padding: 0.5rem 0;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th, td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 500;
+            background: var(--bg-tertiary);
+        }
+
+        tr:hover td {
+            background: var(--bg-tertiary);
+        }
+
+        /* Status badges */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-applied { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .status-phone { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .status-interview { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .status-offer { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .status-withdrawn { background: rgba(113, 113, 122, 0.15); color: #a1a1aa; }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Follow-up indicator */
+        .followup-due {
+            color: var(--warning);
+            font-weight: 500;
+        }
+
+        .followup-overdue {
+            color: var(--danger);
+            font-weight: 500;
+        }
+
+        .followup-ok {
+            color: var(--text-muted);
+        }
+
+        /* Action buttons in table */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Quick Add Section */
+        .quick-add {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quick-add input {
+            flex: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            th, td {
+                padding: 0.625rem 0.5rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .section:nth-child(2) { animation-delay: 0.1s; }
+        .section:nth-child(3) { animation-delay: 0.2s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">💼</div>
+                <h1>Job Application Tracker</h1>
+            </div>
+            <div class="last-updated">Last updated: <span id="lastUpdated">--</span></div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card total">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-card applied">
+                <div class="stat-value" id="statApplied">0</div>
+                <div class="stat-label">Applied</div>
+            </div>
+            <div class="stat-card interview">
+                <div class="stat-value" id="statInterview">0</div>
+                <div class="stat-label">Interview</div>
+            </div>
+            <div class="stat-card offer">
+                <div class="stat-value" id="statOffer">0</div>
+                <div class="stat-label">Offers</div>
+            </div>
+            <div class="stat-card rejected">
+                <div class="stat-value" id="statRejected">0</div>
+                <div class="stat-label">Rejected</div>
+            </div>
+        </div>
+
+        <!-- Your Applied Jobs (directly under stats) -->
+        <div class="section" id="appliedSection">
+            <div class="section-header">
+                <div class="section-title">📋 Your Applications</div>
+            </div>
+            <div class="table-wrapper" id="appliedTable">
+                <div class="empty-state"><div class="empty-icon">📋</div><div>No applications yet</div></div>
+            </div>
+        </div>
+
+        <!-- Follow-ups -->
+        <div class="section" id="followUpSection">
+            <div class="section-header">
+                <div class="section-title">🔔 Follow-ups</div>
+            </div>
+            <div class="table-wrapper" id="followUpTable">
+                <div class="empty-state"><div class="empty-icon">✅</div><div>No follow-ups due</div></div>
+            </div>
+        </div>
+
+        <!-- Quick Add -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">Quick Add Application</div>
+            </div>
+            <div class="quick-add">
+                <input type="text" id="quickCompany" placeholder="Company name">
+                <input type="text" id="quickTitle" placeholder="Job title">
+                <button class="btn btn-primary" onclick="quickAdd()">Add</button>
+            </div>
+        </div>
+
+        <!-- Pending Jobs from LinkedIn -->
+        <div class="section" id="pendingJobsSection">
+            <div class="section-header">
+                <div class="section-title" id="availableJobsTitle">🎯 Available Jobs</div>
+                <span class="btn btn-outline btn-sm" onclick="loadPendingJobs()">🔄 Refresh</span>
+            </div>
+            <div class="table-wrapper" id="pendingJobsTable">
+                <div class="empty-state"><div class="empty-icon">⏳</div><div>Loading...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">All Applications</div>
+                <button class="btn btn-primary btn-sm" onclick="openModal()">+ Add Application</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="applicationsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Company</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Contact</th>
+                            <th>Follow-up</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="applicationsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Add Application</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="applicationForm">
+                    <input type="hidden" id="editIndex" value="-1">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" id="company" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" id="title" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date Applied</label>
+                            <input type="date" id="dateApplied" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="Applied">Applied</option>
+                                <option value="Phone Screen">Phone Screen</option>
+                                <option value="Interview">Interview</option>
+                                <option value="Offer">Offer</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Withdrawn">Withdrawn</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact</label>
+                            <input type="text" id="contact" placeholder="Name, Role, Email">
+                        </div>
+                        <div class="form-group">
+                            <label>Follow-up Date</label>
+                            <input type="date" id="followUp">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="notes" placeholder="Interview details, salary, etc."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveApplication()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let applications = [];
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            loadPendingJobs();
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch('/api/applications');
+                const data = await response.json();
+                applications = data.applications || [];
+                renderAll();
+            } catch (e) {
+                console.error('Failed to load:', e);
+            }
+        }
+
+        function renderAll() {
+            renderStats();
+            renderAppliedSection();
+            renderApplications();
+            renderFollowUps();
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+        }
+
+        function renderStats() {
+            const stats = {
+                total: applications.length,
+                applied: applications.filter(a => a.status === 'Applied').length,
+                phone: applications.filter(a => a.status === 'Phone Screen').length,
+                interview: applications.filter(a => a.status === 'Interview').length,
+                offer: applications.filter(a => a.status === 'Offer').length,
+                rejected: applications.filter(a => a.status === 'Rejected').length
+            };
+
+            document.getElementById('statTotal').textContent = stats.total;
+            document.getElementById('statApplied').textContent = stats.applied + stats.phone + stats.interview;
+            document.getElementById('statInterview').textContent = stats.interview;
+            document.getElementById('statOffer').textContent = stats.offer;
+            document.getElementById('statRejected').textContent = stats.rejected;
+        }
+
+        function renderAppliedSection() {
+            const container = document.getElementById('appliedTable');
+            
+            if (applications.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>No applications yet</div></div>';
+                return;
+            }
+
+            // Sort by date descending
+            const sorted = [...applications].sort((a, b) => b.date.localeCompare(a.date));
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Company</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Follow-up</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map((app, idx) => {
+                            const today = new Date().toISOString().split('T')[0];
+                            let followUpClass = '';
+                            if (app.followUp && app.followUp <= today && app.status !== 'Rejected' && app.status !== 'Withdrawn' && app.status !== 'Offer') {
+                                followUpClass = app.followUp < today ? 'followup-overdue' : 'followup-due';
+                            }
+                            return `
+                                <tr>
+                                    <td>${app.date}</td>
+                                    <td><strong>${app.company}</strong></td>
+                                    <td>${app.title.substring(0, 35)}${app.title.length > 35 ? '...' : ''}</td>
+                                    <td><span class="status status-${app.status.toLowerCase().replace(' ', '')}"><span class="status-dot"></span>${app.status}</span></td>
+                                    <td class="${followUpClass}">${app.followUp || '-'}</td>
+                                    <td class="actions">
+                                        <button class="btn-icon" onclick="updateStatus(${applications.indexOf(app)})" title="Update Status">🔄</button>
+                                        <button class="btn-icon" onclick="deleteApplication(${applications.indexOf(app)})" title="Delete">🗑️</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            // Update section header with count
+            document.querySelector('#appliedSection .section-title').textContent = `📋 Your Applications (${applications.length} Applied)`;
+        }
+
+        function renderApplications() {
+            const tbody = document.getElementById('applicationsBody');
+            
+            if (applications.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">📋</div><div>No applications yet. Add your first job application!</div></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = applications.map((app, idx) => {
+                const followUpClass = getFollowUpClass(app.followUp);
+                return `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${app.date}</td>
+                        <td><strong>${app.company}</strong></td>
+                        <td>${app.title}</td>
+                        <td><span class="status status-${app.status.toLowerCase().replace(' ', '')}"><span class="status-dot"></span>${app.status}</span></td>
+                        <td>${app.contact || '-'}</td>
+                        <td class="${followUpClass}">${app.followUp || '-'}</td>
+                        <td class="actions">
+                            <button class="btn-icon" onclick="editApplication(${idx})" title="Edit">✏️</button>
+                            <button class="btn-icon" onclick="updateStatus(${idx})" title="Update Status">🔄</button>
+                            <button class="btn-icon" onclick="deleteApplication(${idx})" title="Delete">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderFollowUps() {
+            const container = document.getElementById('followUpTable');
+            if (!container) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            const due = applications.filter(app => {
+                if (!app.followUp || app.status === 'Rejected' || app.status === 'Withdrawn' || app.status === 'Offer') return false;
+                return app.followUp <= today;
+            });
+
+            if (due.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>No follow-ups due</div></div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Follow-up Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${due.map(app => {
+                            const isOverdue = app.followUp < today;
+                            return `
+                                <tr>
+                                    <td><strong>${app.company}</strong></td>
+                                    <td>${app.title}</td>
+                                    <td><span class="status status-${app.status.toLowerCase().replace(' ', '')}"><span class="status-dot"></span>${app.status}</span></td>
+                                    <td class="${isOverdue ? 'followup-overdue' : 'followup-due'}">${app.followUp}</td>
+                                    <td class="actions">
+                                        <button class="btn btn-outline btn-sm" onclick="markInterview(${applications.indexOf(app)})">📅 Mark Interview</button>
+                                        <button class="btn btn-outline btn-sm" onclick="markRejected(${applications.indexOf(app)})">❌ Rejected</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function getFollowUpClass(followUp) {
+            if (!followUp) return 'followup-ok';
+            const today = new Date().toISOString().split('T')[0];
+            if (followUp < today) return 'followup-overdue';
+            if (followUp <= today) return 'followup-due';
+            return 'followup-ok';
+        }
+
+        // Modal functions
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Add Application';
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('applicationForm').reset();
+            document.getElementById('dateApplied').value = new Date().toISOString().split('T')[0];
+            
+            // Default follow-up to 14 days
+            const defaultFollowUp = new Date();
+            defaultFollowUp.setDate(defaultFollowUp.getDate() + 14);
+            document.getElementById('followUp').value = defaultFollowUp.toISOString().split('T')[0];
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function saveApplication() {
+            const app = {
+                company: document.getElementById('company').value,
+                title: document.getElementById('title').value,
+                date: document.getElementById('dateApplied').value,
+                status: document.getElementById('status').value,
+                contact: document.getElementById('contact').value,
+                followUp: document.getElementById('followUp').value,
+                notes: document.getElementById('notes').value,
+                source: 'Manual'
+            };
+
+            if (!app.company || !app.title || !app.date) {
+                alert('Please fill in required fields');
+                return;
+            }
+
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+            
+            try {
+                const response = await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: editIndex >= 0 ? editIndex : -1 })
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadData();
+                } else {
+                    alert('Failed to save');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function quickAdd() {
+            const company = document.getElementById('quickCompany').value;
+            const title = document.getElementById('quickTitle').value;
+            
+            if (!company || !title) {
+                alert('Please enter company and title');
+                return;
+            }
+
+            const app = {
+                company,
+                title,
+                date: new Date().toISOString().split('T')[0],
+                status: 'Applied',
+                contact: '',
+                followUp: '',
+                notes: '',
+                source: 'Quick Add'
+            };
+
+            try {
+                const response = await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: -1 })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('quickCompany').value = '';
+                    document.getElementById('quickTitle').value = '';
+                    loadData();
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function editApplication(idx) {
+            const app = applications[idx];
+            document.getElementById('editIndex').value = idx;
+            document.getElementById('modalTitle').textContent = 'Edit Application';
+            document.getElementById('company').value = app.company;
+            document.getElementById('title').value = app.title;
+            document.getElementById('dateApplied').value = app.date;
+            document.getElementById('status').value = app.status;
+            document.getElementById('contact').value = app.contact || '';
+            document.getElementById('followUp').value = app.followUp || '';
+            document.getElementById('notes').value = app.notes || '';
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        async function updateStatus(idx) {
+            const app = applications[idx];
+            const statuses = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected', 'Withdrawn'];
+            const currentIdx = statuses.indexOf(app.status);
+            const nextStatus = statuses[(currentIdx + 1) % statuses.length];
+            
+            app.status = nextStatus;
+            
+            try {
+                await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: idx })
+                });
+                loadData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function deleteApplication(idx) {
+            if (!confirm('Delete this application?')) return;
+            
+            try {
+                await fetch('/api/applications', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index: idx })
+                });
+                loadData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function markInterview(idx) {
+            applications[idx].status = 'Interview';
+            await saveAppDirect(idx);
+        }
+
+        async function markRejected(idx) {
+            applications[idx].status = 'Rejected';
+            await saveAppDirect(idx);
+        }
+
+        async function saveAppDirect(idx) {
+            try {
+                await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: applications[idx], index: idx })
+                });
+                loadData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function refreshData() {
+            await loadData();
+            await loadPendingJobs();
+        }
+
+        // Pending Jobs from LinkedIn Report
+        let pendingJobs = [];
+        
+        async function loadPendingJobs() {
+            try {
+                const response = await fetch('/api/pending-jobs');
+                const data = await response.json();
+                pendingJobs = data.jobs || [];
+                
+                // Update section title with report date
+                const titleEl = document.getElementById('availableJobsTitle');
+                if (titleEl && data.date) {
+                    const [year, month, day] = data.date.split('-');
+                    titleEl.textContent = `🎯 Available Jobs ${day}-${month}-${year} (Brossard First → Ranked by Fit)`;
+                }
+                
+                renderPendingJobs();
+            } catch (e) {
+                console.error('Failed to load pending jobs:', e);
+            }
+        }
+
+        function renderPendingJobs() {
+            const container = document.getElementById('pendingJobsTable');
+            
+            if (pendingJobs.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>No pending jobs</div></div>';
+                return;
+            }
+
+            // Group jobs by date bucket
+            const dateGroups = {
+                0: { label: '📅 Today', jobs: [] },
+                1: { label: '📅 Yesterday', jobs: [] },
+                2: { label: '📅 This Week', jobs: [] },
+                3: { label: '📅 Older', jobs: [] }
+            };
+            
+            pendingJobs.forEach(job => {
+                const bucket = job.date_bucket !== undefined ? job.date_bucket : 3;
+                if (dateGroups[bucket]) {
+                    dateGroups[bucket].jobs.push(job);
+                } else {
+                    dateGroups[3].jobs.push(job);
+                }
+            });
+            
+            // Build HTML with separate tables for each date group
+            let html = '';
+            
+            const bucketOrder = [0, 1, 2, 3];  // Today, Yesterday, This Week, Older
+            
+            bucketOrder.forEach(bucket => {
+                const group = dateGroups[bucket];
+                if (group.jobs.length === 0) return;
+                
+                // Sort within group: South Shore first, then by fit
+                const sortedJobs = group.jobs.sort((a, b) => {
+                    if (a.priority !== b.priority) return a.priority - b.priority;
+                    return b.fit - a.fit;
+                });
+                
+                html += `
+                <div class="date-section">
+                    <div class="date-section-header">${group.label} (${sortedJobs.length})</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fit</th>
+                                <th>Title</th>
+                                <th>Company</th>
+                                <th>Location</th>
+                                <th>Area</th>
+                                <th>Posted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedJobs.map(job => {
+                                const fitBadge = job.fit >= 30 ? '⭐' + job.fit : (job.fit >= 15 ? '✓' + job.fit : job.fit);
+                                const areaClass = job.priority === 1 ? 'south-shore' : (job.priority === 2 ? 'montreal' : '');
+                                const easyApplyButton = job.easy_apply ? `<a href="${job.link}" target="_blank" class="btn btn-outline btn-sm">Easy Apply</a>` : '';
+                                return `
+                                    <tr class="${areaClass}">
+                                        <td>${job.num}</td>
+                                        <td><strong>${fitBadge}</strong></td>
+                                        <td>${job.title.substring(0, 35)}${job.title.length > 35 ? '...' : ''}</td>
+                                        <td><strong>${job.company}</strong></td>
+                                        <td>${job.location.split(',')[0]}</td>
+                                        <td>${job.area}</td>
+                                        <td>${job.posted}</td>
+                                        <td class="actions">
+                                            <a href="${job.link}" target="_blank" class="btn btn-primary btn-sm">Apply</a>
+                                            ${easyApplyButton}
+                                            <button class="btn btn-outline btn-sm" onclick="addJobToTracker(${job.num})">Applied</button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function addJobToTracker(jobNum) {
+            const job = pendingJobs.find(j => j.num === jobNum);
+            if (!job) return;
+            
+            const app = {
+                date: new Date().toISOString().split('T')[0],
+                company: job.company,
+                title: job.title,
+                source: job.link,
+                status: 'Applied',
+                contact: '',
+                followUp: '',
+                notes: `Fit: ${job.fit}, ${job.area}`
+            };
+
+            try {
+                await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: -1 })
+                });
+                
+                // Refresh both lists
+                await loadData();
+                await loadPendingJobs();
+                
+                alert(`Added: ${job.company} - ${job.title}`);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>
+"""
+
+class TrackerHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        
+        if parsed.path == '/':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(HTML.encode('utf-8'))
+        
+        elif parsed.path == '/api/applications':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            data = self.read_tracker()
+            self.wfile.write(json.dumps(data).encode('utf-8'))
+        
+        elif parsed.path == '/api/pending-jobs':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            jobs, report_date = parse_linkedin_report()
+            self.wfile.write(json.dumps({'jobs': jobs, 'count': len(jobs), 'date': report_date}).encode('utf-8'))
+        
+        elif parsed.path == '/api/apply-to-job':
+            # Add a job from pending list to tracker
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'ok'}).encode('utf-8'))
+        
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
+    def do_POST(self):
+        if self.path == '/api/applications':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            data = json.loads(body.decode('utf-8'))
+            
+            self.update_tracker(data.get('application'), data.get('index', -1))
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+    
+    def do_DELETE(self):
+        if self.path == '/api/applications':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            data = json.loads(body.decode('utf-8'))
+            
+            self.delete_application(data.get('index'))
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+    
+    def read_tracker(self):
+        """Read applications from markdown file"""
+        if not os.path.exists(TRACKER_FILE):
+            return {'applications': [], 'lastUpdated': None}
+        
+        with open(TRACKER_FILE, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        apps = []
+        lines = content.split('\n')
+        in_table = False
+        
+        for line in lines:
+            if line.startswith('| # |') and 'Company' in line:
+                in_table = True
+                continue
+            if in_table and line.startswith('|') and not line.startswith('| # |'):
+                parts = [p.strip() for p in line.split('|')]
+                # Ignore Markdown separator rows (for example, "|---|---|").
+                cells = parts[1:-1]
+                is_separator = cells and all(cell and set(cell) <= {'-', ':'} for cell in cells)
+                # Skip header, empty, placeholder, and separator rows.
+                if not is_separator and len(parts) >= 10 and parts[2] and parts[2] != 'Company' and not parts[2].startswith('*') and parts[3] != 'Company':
+                    try:
+                        # Skip the row number in column 1
+                        app = {
+                            'date': parts[2],
+                            'company': parts[3],
+                            'title': parts[4],
+                            'source': parts[5],
+                            'status': parts[6],
+                            'contact': parts[7],
+                            'followUp': parts[8],
+                            'notes': parts[9] if len(parts) > 9 else ''
+                        }
+                        if app['company'] and app['title']:
+                            apps.append(app)
+                    except:
+                        pass
+        
+        # Get last updated date
+        last_updated = None
+        for line in lines:
+            if 'Last Updated:' in line:
+                last_updated = line.split('Last Updated:')[1].strip()
+        
+        return {'applications': apps, 'lastUpdated': last_updated}
+    
+    def update_tracker(self, app, index):
+        """Add or update an application"""
+        apps = self.read_tracker()['applications']
+        
+        if index >= 0 and index < len(apps):
+            apps[index] = app
+        else:
+            apps.append(app)
+        
+        self.write_tracker(apps)
+    
+    def delete_application(self, index):
+        """Delete an application"""
+        apps = self.read_tracker()['applications']
+        
+        if 0 <= index < len(apps):
+            apps.pop(index)
+            self.write_tracker(apps)
+    
+    def write_tracker(self, apps):
+        """Write applications to markdown file"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # Calculate stats
+        stats = {
+            'total': len(apps),
+            'Applied': len([a for a in apps if a.get('status') == 'Applied']),
+            'Phone Screen': len([a for a in apps if a.get('status') == 'Phone Screen']),
+            'Interview': len([a for a in apps if a.get('status') == 'Interview']),
+            'Offer': len([a for a in apps if a.get('status') == 'Offer']),
+            'Rejected': len([a for a in apps if a.get('status') == 'Rejected']),
+            'Withdrawn': len([a for a in apps if a.get('status') == 'Withdrawn'])
+        }
+        
+        content = f"""# Job Application Tracker
+
+**Last Updated:** {today}
+
+## Summary
+
+| Status | Count |
+|--------|-------|
+| Applied | {stats['Applied']} |
+| Phone Screen | {stats['Phone Screen']} |
+| Interview | {stats['Interview']} |
+| Offer | {stats['Offer']} |
+| Rejected | {stats['Rejected']} |
+| Withdrawn | {stats['Withdrawn']} |
+| **Total** | {stats['total']} |
+
+---
+
+## Applications
+
+| # | Date | Company | Title | Source | Status | Contact | Follow-up | Notes |
+|---|------|---------|-------|--------|--------|---------|-----------|-------|
+"""
+        
+        # Rebuild the entire table from scratch to avoid empty rows
+        lines = []
+        lines.append("# Job Application Tracker")
+        lines.append("")
+        lines.append(f"**Last Updated:** {today}")
+        lines.append("")
+        lines.append("## Summary")
+        lines.append("")
+        lines.append("| Status | Count |")
+        lines.append("|--------|-------|")
+        lines.append(f"| Applied | {stats['Applied']} |")
+        lines.append(f"| Phone Screen | {stats['Phone Screen']} |")
+        lines.append(f"| Interview | {stats['Interview']} |")
+        lines.append(f"| Offer | {stats['Offer']} |")
+        lines.append(f"| Rejected | {stats['Rejected']} |")
+        lines.append(f"| Withdrawn | {stats['Withdrawn']} |")
+        lines.append(f"| **Total** | {stats['total']} |")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+        lines.append("## Applications")
+        lines.append("")
+        lines.append("| # | Date | Company | Title | Source | Status | Contact | Follow-up | Notes |")
+        lines.append("|---|------|---------|-------|--------|--------|---------|-----------|-------|")
+        
+        for app in apps:
+            idx = apps.index(app)
+            contact = app.get('contact', '')
+            follow_up = app.get('followUp', '')
+            notes = app.get('notes', '')
+            source = app.get('source', 'Manual')
+            content = f"| {idx + 1} | {app.get('date', '')} | {app.get('company', '')} | {app.get('title', '')} | {source} | {app.get('status', '')} | {contact} | {follow_up} | {notes} |"
+            lines.append(content)
+        
+        if not apps:
+            lines.append("| *No applications tracked yet* |")
+        
+        with open(TRACKER_FILE, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+    
+    def log_message(self, format, *args):
+        pass  # Suppress logging
+
+def run_server(port=8766):
+    server = HTTPServer(('localhost', port), TrackerHandler)
+    process_id = os.getpid()
+    print(f"🎯 Job Tracker running at http://localhost:{port}")
+    print(f"   Process ID: {process_id}")
+    print(f"   Tracker file: {TRACKER_FILE}")
+    print(f"   Press Ctrl+C to stop")
+    server.serve_forever()
+
+if __name__ == '__main__':
+    run_server()

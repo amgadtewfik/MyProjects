@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Racing Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background:#1a1a2e; font-family: sans-serif; }
+        #gameCanvas { display:block; width:100vw; height:85vh; position:absolute; top:0; left:0; cursor:none; }
+        .hud { position:absolute; bottom:10px; left:10px; right:10px; color:#fff; font-size:14px; pointer-events:none; user-select:none; text-shadow:0 0 3px #000; }
+        .hud-right { position:absolute; bottom:10px; right:10px; left:auto; }
+        .controls { padding:4px 6px; background:#2b2b3f; border-radius:6px; color:#dcdcdc; font-size:11px; user-select:none; pointer-events:auto; margin-bottom:4px; }
+        #garageBtn { position:absolute; bottom:50px; left:50%; transform:translateX(-50%); padding:6px 12px; background:#c43f3f; border:none; color:white; border-radius:4px; cursor:pointer; font-size:12px; }
+        #garageBtn:hover { filter:brightness(1.1); }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="500"></canvas>
+
+<div class="hud">
+  <div>LAP: <span id="lapDisplay">0/3</span></div>
+  <div>CURRENT LAP TIME: <span id="currentLapTime">--:--:--</span></div>
+  <div>BEST LAP: <span id="bestLapTime">--:--:--</span></div>
+</div>
+
+<div class="hud hud-right">
+  <div>SPEED: <span id="speedometer">0</span> km/h</div>
+  <div>RPM: <span id="rpmGauge">0</span> RPM</div>
+</div>
+
+<div class="controls">Use A/D to steer, ↑/↓ for gas/brake, S to restart lap (debug), G to open garage.</div>
+
+<button id="garageBtn" onclick="showGarage()">GARAGE — Select Car</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===== CONFIG & STATE ===== */
+const config = { worldSize: 800, roadWidth: 420, cameraHeight: 160, fpsTarget: 60 };
+
+let state = {
+  time: 0,
+  playerCar: null, aiCars: [], sceneryLayers: [], currentLapTime: null, lapsCompleted: 0, bestLapTime: null,
+};
+
+/* ===== SCENE SETUP (Three.js) ===== */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xa3d8ff);
+scene.fog = new THREE.FogExp2(0x87c4f5, 0.0016);
+
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 3000);
+camera.position.set(0, config.cameraHeight + 30, -220);
+camera.lookAt(0, 18, 40);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight * 0.85);
+document.getElementById('gameCanvas').appendChild(renderer.domElement);
+
+const ambientLight = new THREE.AmbientLight(0x6b7d9a, 1.25);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+dirLight.position.set(240, 360, 240).normalize().multiplyScalar(420);
+scene.add(dirLight);
+
+/* ===== ROAD GENERATION (curved hills) ===== */
+const pathPoints = []; // global centerline heights for terrain
+function buildRoad() {
+  const pts = [];
+  for (let x = -config.worldSize/2, i = 0; x <= config.worldSize/2; x += 15) {
+    const sinHill = Math.sin(x * 0.03);
+    const noiseHill = Math.sin(x * 0.07) * 0.4;
+    const y = (Math.random() - 0.5) * 12 + sinHill * 28 + noiseHill * 36;
+    pts.push(new THREE.Vector3(x, Math.max(0,y), 20));
+  }
+
+  // terrain plane with height variation
+  const roadGeo = new THREE.PlaneGeometry(config.worldSize, config.roadWidth);
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0x2b4f5e, roughness: 0.8, metalness: 0.1 });
+  const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+  scene.add(roadMesh);
+
+  const terrainGeo = new THREE.PlaneGeometry(config.worldSize, config.worldSize);
+  const terrainMat = new THREE.MeshStandardMaterial({ color: 0x1f2e3a });
+  const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+  scene.add(terrainMesh);
+
+  // apply heights to vertices
+  const vPos = terrainGeo.attributes.position;
+  const count = vPos.count;
+  for (let i = 0; i < count; i++) {
+    const x = vPos.getX(i), z = -vPos.getZ(i);
+    if (x >= -config.worldSize/2 && x <= config.worldSize/2) {
+      const yVal = pts.find(p => Math.abs(x-p.x) < 1.5)?.y || 0;
+      vPos.setY(i, yVal);
+    }
+  }
+  terrainGeo.computeVertexNormals();
+
+  // start / finish markers
+  function addMarker(name, x, z) {
+    const geom = new THREE.PlaneGeometry(config.roadWidth + 20, 18);
+    let mat; if (name === 'start') mat = new THREE.MeshBasicMaterial({ color: 0x75ff75 }); else if (name === 'finish') mat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x, Math.max(pts.find(p => Math.abs(x-p.x)<1.5)?.y || 0) + 3, z); mesh.rotation.x = -Math.PI/2; scene.add(mesh);
+    const lineMat = new THREE.LineBasicMaterial({ color: name==='start'?0x44cc44:0xff6600 });
+    const ptsLine = []; for (let w = -config.roadWidth/2; w <= config.roadWidth/2; w += 3) { ptsLine.push(new THREE.Vector3(w, Math.max(pts.find(p => Math.abs(x-p.x)<1.5)?.y || 0) + 10, z)); ptsLine.push(new THREE.Vector3(w, Math.max(pts.find(p => Math.abs(x-p.x)<1.5)?.y || 0) + 4, z)); }
+    const line = new THREE.LineSegments(geom.clone().draw(), lineMat); scene.add(line);
+  }
+  addMarker('start', -config.worldSize/2+100, 25);
+  addMarker('finish', config.worldSize/2-100, 25);
+
+  // fill pathPoints for later use
+  for (let x=-config.worldSize/2; x<=config.worldSize/2; x+=15) {
+    const yVal = pts.find(p => Math.abs(x-p.x)<1.5)?.y || 0;
+    pathPoints.push({x:x,y:yVal});
+  }
+}
+
+buildRoad();
+
+/* ===== PLAYER CAR ===== */
+function createPlayerCar() {
+  const group = new THREE.Group();
+  const bodyGeo = new THREE.BoxGeometry(36, 14, 70);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2e8eff, roughness: 0.5 });
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat); group.add(bodyMesh);
+  // wheels (visual only)
+  for (let side = -1; side <= 1; side += 2) {
+    for (let p of [48,-48]) {
+      const wheelGeo = new THREE.BoxGeometry(7,6,10);
+      const w = new THREE.Mesh(wheelGeo,new THREE.MeshStandardMaterial({color:0x111}));
+      w.position.set(side*30,p,-18); group.add(w);
+    }
+  }
+  // initial position just after start line (using pathPoints)
+  const startPos = pathPoints.find(p => Math.abs(p.x - (-config.worldSize/2+150)) < 1.5)?.position.clone() || new THREE.Vector3(-config.worldSize/2+180,18,25);
+  group.position.copy(startPos).add(new THREE.Vector3(0,-6,0));
+  return group;
+}
+
+state.playerCar = createPlayerCar(); scene.add(state.playerCar);
+
+/* ===== AI OPPONENTS ===== */
+function spawnAI(carColor) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(36,14,70);
+  const mat = new THREE.MeshStandardMaterial({color:carColor});
+  const mesh = new THREE.Mesh(geo, mat); group.add(mesh);
+  // wheels
+  for (let side=-1;side<=1;side+=2){
+    for(let p of [48,-48]){
+      const w=new THREE.Mesh(new THREE.BoxGeometry(7,6,10), new THREE.MeshStandardMaterial({color:0x111}));
+      w.position.set(side*30,p,-18); group.add(w);
+    }
+  }
+  // start ahead of player on the path
+  const xOff = Math.floor(Math.random()*96 - config.worldSize/2 + 240);
+  const yVal = pathPoints.find(p => Math.abs(xOff-p.x)<1.5)?.y || 0;
+  group.position.set(xOff, yVal+48, 25).add(new THREE.Vector3(0,-6,0));
+  return {group, speed:0};
+}
+
+const aiColors = [0xff4d4d, 0x5c7aff];
+for (let i=1;i<=3;i++) state.aiCars.push(spawnAI(aiColors[i%aiColors.length]));
+state.aiCars.forEach(c => scene.add(c.group));
+
+/* ===== UI ELEMENTS ===== */
+const lapDisplay = document.getElementById('lapDisplay');
+const currentLapTimeEl = document.getElementById('currentLapTime');
+const bestLapTimeEl = document.getElementById('bestLapTime');
+const speedometerEl = document.getElementById('speedometer');
+const rpmGaugeEl = document.getElementById('rpmGauge');
+
+let currentLapStartTime = null, lastCheckpointTime = null, checkpointPassed = false;
+
+function fmtLap(ms) { return ms ? (ms/1000).toFixed(2) : '--'; }
+
+/* ===== INPUT HANDLING ===== */
+const keys = {};
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase(); if (['arrowup','w'].includes(k)) keys.up = true; else if (k === ' ') keys.brake = true;
+  else if (k === 'a') keys.left = true; else if (k === 'd') keys.right = true; else if (k==='s') checkpointPassed=false;
+  else if (['arrowdown','s'].includes(k)) keys.down = true; else if (k === 'g') showGarage();
+});
+window.addEventListener('keyup', e => {
+  const k = e.key.toLowerCase(); if (['arrowup','w'].includes(k)) keys.up = false; else if (k===' ') keys.brake = false;
+  else if (k==='a') keys.left = false; else if (k === 'd') keys.right = false; else if (k==='s') checkpointPassed=true;
+});
+
+/* ===== GAME LOGIC ===== */
+let  playerXReset = -config.worldSize/2 + 180;
+
+function update(dt) {
+  const now = performance.now(); state.time += dt * config.fpsTarget / 1000;
+
+  // player speed & terrain height
+  let speedKph = 0, rpm = 0;
+  if (!keys.brake) {
+    const roadHeightAtX = pathPoints.find(p => Math.abs(state.playerCar.position.x - p.x) < 1.5)?.y || 0;
+    const prevRoadHeight = pathPoints.find(p => Math.abs((state.playerCar.position.x-36)-p.x) < 1.5)?.y || 0;
+    const accelBase = 42 + (prevRoadHeight - roadHeightAtX) * 8;
+    speedKph += accelBase * dt; rpm = Math.min(10 + speedKph / 5, 7200);
+  } else {
+    speedKph -= 36 * dt; rpm = Math.max(rpm - 420 * dt, 600);
+  }
+
+  // steering slide (flat plane)
+  if (keys.left) state.playerCar.position.x -= speedKph * dt * 0.15;
+  else if (keys.right) state.playerCar.position.x += speedKph * dt * 0.15;
+  state.playerCar.rotation.y = keys.left ? -0.1 : (keys.right ? 0.1 : 0);
+
+  // clamp to road width
+  const leftBound = -config.worldSize/2 + config.roadWidth/2, rightBound = config.worldSize/2 - config.roadWidth/2;
+  if (state.playerCar.position.x < leftBound) { state.playerCar.position.x = leftBound; speedKph *= 0.85; }
+  else if (state.playerCar.position.x > rightBound) { state.playerCar.position.x = rightBound; speedKph *= 0.85; }
+
+  // sit on terrain height at current X
+  const roadHeightAtX = pathPoints.find(p => Math.abs(state.playerCar.position.x - p.x) < 1.5)?.y || 0;
+  state.playerCar.position.set(state.playerCar.position.x, roadHeightAtX, 25);
+
+  // checkpoint logic (start line at x ≈ -worldSize/2+150)
+  const startLineX = -config.worldSize/2 + 150;
+  if (Math.abs(state.playerCar.position.x - startLineX) < 2.5 && !checkpointPassed) {
+    checkpointPassed = true; lastCheckpointTime = now; currentLapStartTime = now; speedKph = 0; // reset after crossing
+  } else if (!checkpointPassed) {
+    // player hasn't passed the start line yet → reset to beginning and zero speed
+    state.playerCar.position.set(startLineX + 30, pathPoints.find(p => Math.abs(startLineX+30-p.x)<1.5)?.y || 0, 25);
+    speedKph = 0; checkpointPassed = false; currentLapStartTime = now; lastCheckpointTime = now;
+  }
+
+  // lap completed check (finish line at x ≈ worldSize/2-48)
+  const finishLineX = config.worldSize/2 - 48;
+  if (state.playerCar.position.x >= finishLineX && speedKph > 0 && currentLapStartTime !== null) {
+    const elapsed = now - lastCheckpointTime; state.currentLapTime = elapsed; state.lapsCompleted++;
+    lapDisplay.textContent = `${state.lapsCompleted}/${3}`;
+    currentLapTimeEl.textContent = fmtLap(elapsed);
+    if (state.bestLapTime === null || elapsed < state.bestLapTime) { state.bestLapTime = elapsed; bestLapTimeEl.textContent = fmtLap(state.bestLapTime); } else { bestLapTimeEl.textContent = fmtLap(state.bestLapTime); }
+    // reset player to start line after lap completion
+    checkpointPassed = false; lastCheckpointTime = now; speedKph = 0; currentLapStartTime = null;
+    state.playerCar.position.set(startLineX + 30, pathPoints.find(p => Math.abs(startLineX+30-p.x)<1.5)?.y || 0, 25);
+  }
+
+  // AI movement
+  state.aiCars.forEach(ai => {
+    let targetSpeedKph = (ai.speed < speedKph + 5) ? Math.min(42 + speedKph * 0.3, 85) : Math.max(12, 60 - (state.aiCars.indexOf(ai)+1)*6);
+    const accel = ai.speed < targetSpeedKph && speedKph > 0 ? (targetSpeedKph - ai.speed) * dt * 4 : -(ai.speed - targetSpeedKph) * dt * 3;
+    ai.speed += accel;
+    ai.group.position.x += (targetSpeedKph / 12.5) * dt; // km/h → world units per sec
+
+    const leftBound = -config.worldSize/2 + config.roadWidth/2, rightBound = config.worldSize/2 - config.roadWidth/2;
+    if (ai.group.position.x < leftBound) ai.group.position.x = leftBound; else if (ai.group.position.x > rightBound) ai.group.position.x = rightBound;
+
+    const roadHeightAtX = pathPoints.find(p => Math.abs(ai.group.position.x-p.x)<1.5)?.y || 0;
+    ai.group.position.set(ai.group.position.x, roadHeightAtX, 25);
+    ai.speed *= (speedKph < targetSpeedKph && speedKph > 0) ? 1.1 : 0.95; // catch-up damping
+  });
+
+  // update UI gauges
+  const speedDisplay = Math.round(speedKph * 18/36);
+  speedometerEl.textContent = speedDisplay || '0';
+  rpmGaugeEl.textContent = Math.floor(rpm) || '0';
+}
+
+/* ===== PARALLAX BACKGROUND (placeholder) ===== */
+function initParallaxBackground() {
+  const geo = new THREE.DodecahedronGeometry(180,0);
+  for(let i=0;i<25;i++){
+    const mat=new THREE.MeshBasicMaterial({color:Math.random()*0x4479ff + 0xcc});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set((Math.random()-0.5)*config.worldSize, Math.random()*80, (Math.random()-0.5)*config.worldSize+120);
+    scene.add(mesh);
+  }
+}
+initParallaxBackground();
+
+/* ===== GARAGE SCREEN ===== */
+function showGarage() {
+  const body = document.body;
+  const garageDiv = document.createElement('div');
+  garageDiv.id = 'garageOverlay';
+  garageDiv.innerHTML = `<style>#garageOverlay{position:fixed;top:0;left:0;width:100%;height:85vh;background:#2e3a4f;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;text-shadow:0 0 6px #000;} .car-select{display:flex;gap:16px;margin-top:24px;flex-wrap:wrap;} .car-btn{width:84px;height:50px;background:#3b4d66;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#eef;border:none;cursor:pointer;} .car-btn:hover, .car-btn.selected{background:#c44a2a;}</style> <div style="text-align:center;">GARAGE — Choose a car</div>`;
+
+  const stats = [
+    { name:'Starter', speed:38, handling:1.0 },
+    { name:'Tuner',   speed:46, handling:0.85 },
+    { name:'Speedster', speed:58, handling:0.72 },
+    { name:'Drifter',  speed:52, handling:0.96 },
+  ];
+
+  stats.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'car-btn'; btn.textContent = c.name; btn.onclick = () => toggleGarageBtn(btn);
+    if (i === 1) btn.classList.add('selected'); // default select middle tuner
+    garageDiv.appendChild(btn);
+  });
+
+  body.appendChild(garageDiv);
+
+  function toggleGarageBtn(el){ el.classList.toggle('selected'); }
+
+  // close overlay after a short delay so user can see it (keep gameplay responsive)
+  setTimeout(() => { if(document.getElementById('garageOverlay')){ document.getElementById('garageOverlay').remove(); } }, 200);
+}
+
+/* ===== RENDER LOOP ===== */
+let lastFrameTime = null;
+function animate(time) {
+  const now = performance.now();
+  let dt = (now - lastFrameTime) / 1000; if (!lastFrameTime) dt = 1/60; else dt = Math.min(dt, 0.15);
+  lastFrameTime = now;
+
+  update(dt); renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

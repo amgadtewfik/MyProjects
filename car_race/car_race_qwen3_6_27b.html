@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GTA Style Racing - Gemini Race Game</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; }
+canvas { display: block; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+    <div style="width:100%;height: 100%;">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+<script>
+// ============================================================
+// GTA-STYLE RACING GAME - GEMINI RACE GAME
+// ============================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = 960;
+canvas.height = 640;
+
+// ==================== GAME STATE ====================
+let gameState = 'menu'; // menu, playing, finished
+let gameTime = 0;
+let lapCount = 0;
+let totalLaps = 3;
+let raceTime = 0;
+let bestLapTime = Infinity;
+let currentLapStartTime = 0;
+
+// ==================== TRACK DEFINITION ====================
+// Track defined as a series of waypoints forming a closed loop
+const trackPoints = [
+    {x: 800, y: 400},   // start area - straight
+    {x: 1200, y: 350},  // straight
+    {x: 1500, y: 300},  // slight right curve
+    {x: 1800, y: 400},  // right turn
+    {x: 2000, y: 600},  // big right curve
+    {x: 2100, y: 900},  // bottom straight
+    {x: 1900, y: 1100}, // slight left
+    {x: 1500, y: 1200}, // left curve
+    {x: 1100, y: 1100}, // straight
+    {x: 800, y: 950},   // left turn
+    {x: 600, y: 750},   // S-curve start
+    {x: 400, y: 600},   // S-curve middle
+    {x: 300, y: 450},   // left turn back to start
+    {x: 500, y: 350},   // approach start line
+];
+
+// Track width and boundaries
+const trackWidth = 120;
+
+// Calculate track segments with inner/outer edges
+let trackSegments = [];
+let trackInnerEdge = [];
+let trackOuterEdge = [];
+let trackCenterLine = [];
+
+function buildTrack() {
+    // Smooth the track points using Catmull-Rom spline interpolation
+    const smoothedPoints = [];
+    for (let i = 0; i < trackPoints.length; i++) {
+        const p0 = trackPoints[i];
+        const p1 = trackPoints[(i + 1) % trackPoints.length];
+        const p2 = trackPoints[(i + 2) % trackPoints.length];
+        const p3 = trackPoints[(i - 1 + trackPoints.length) % trackPoints.length];
+
+        for (let t = 0; t < 1; t += 0.1) {
+            const t2 = t * t;
+            const t3 = t2 * t;
+            const x = 0.5 * ((2*p0.x - p1.x - 2*p3.x)*t + (p3.x - 2*p0.x + p1.x)*t2 + (-p3.x + 2*p0.x - p1.x)*t3) + p0.x;
+            const y = 0.5 * ((2*p0.y - p1.y - 2*p3.y)*t + (p3.y - 2*p0.y + p1.y)*t2 + (-p3.y + 2*p0.y - p1.y)*t3) + p0.y;
+            smoothedPoints.push({x, y});
+        }
+    }
+
+    // Add more points for smoothness
+    const finalPoints = [];
+    for (let i = 0; i < smoothedPoints.length; i++) {
+        const prev = smoothedPoints[(i - 1 + smoothedPoints.length) % smoothedPoints.length];
+        const curr = smoothedPoints[i];
+        const next = smoothedPoints[(i + 1) % smoothedPoints.length];
+
+        finalPoints.push({
+            x: (prev.x + curr.x + next.x) / 3,
+            y: (prev.y + curr.y + next.y) / 3
+        });
+    }
+
+    // Calculate track edges
+    for (let i = 0; i < finalPoints.length; i++) {
+        const curr = finalPoints[i];
+        const next = finalPoints[(i + 1) % finalPoints.length];
+
+        const dx = next.x - curr.x;
+        const dy = next.y - curr.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) continue;
+
+        const nx = -dy / len; // normal direction
+        const ny = dx / len;
+
+        trackSegments.push({
+            point: {x: curr.x, y: curr.y},
+            innerX: curr.x + nx * trackWidth / 2,
+            innerY: curr.y + ny * trackWidth / 2,
+            outerX: curr.x - nx * trackWidth / 2,
+            outerY: curr.y - ny * trackWidth / 2,
+        });
+
+        trackInnerEdge.push({x: curr.x + nx * trackWidth / 2, y: curr.y + ny * trackWidth / 2});
+        trackOuterEdge.push({x: curr.x - nx * trackWidth / 2, y: curr.y - ny * trackWidth / 2});
+    }
+
+    // Calculate track center line for lap detection
+    trackCenterLine = finalPoints;
+}
+
+// ==================== CAR CLASS ====================
+class Car {
+    constructor(x, y, color, isAI = false) {
+        this.x = x;
+        this.y = y;
+        this.angle = 0;
+        this.speed = 0;
+        this.maxSpeed = 5;
+        this.acceleration = 0.15;
+        this.braking = 0.2;
+        this.friction = 0.98;
+        this.turnSpeed = 0.03;
+        this.driftFactor = 0;
+        this.width = 40;
+        this.height = 20;
+        this.color = color;
+        this.isAI = isAI;
+        this.lapProgress = 0;
+        this.currentTrackIndex = -1;
+        this.boostTimer = 0;
+        this.finished = false;
+        this.finishTime = 0;
+    }
+
+    update(keys) {
+        if (this.isAI) {
+            // AI follows track waypoints
+            const targetPoint = this.getNextWaypoint();
+            if (targetPoint) {
+                const dx = targetPoint.x - this.x;
+                const dy = targetPoint.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 5) {
+                    const targetAngle = Math.atan2(dy, dx);
+                    let angleDiff = targetAngle - this.angle;
+                    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                    this.angle += angleDiff * 0.1;
+                }
+
+                // Speed control for AI
+                const speedMultiplier = 0.7 + Math.random() * 0.3; // Varying speeds
+                if (this.speed < this.maxSpeed * speedMultiplier) {
+                    this.speed += this.acceleration * 0.8;
+                } else {
+                    this.speed -= this.braking * 0.5;
+                }
+            }
+        } else {
+            // Player controls
+            let turnAmount = 0;
+
+            if (keys.left || keys.a) turnAmount += this.turnSpeed;
+            if (keys.right || keys.d) turnAmount -= this.turnSpeed;
+
+            // Turning is faster when moving
+            turnAmount *= Math.min(this.speed / this.maxSpeed, 1);
+
+            // Reverse turning direction
+            if (this.speed < 0) {
+                turnAmount *= -1;
+            }
+
+            this.angle += turnAmount;
+
+            // Acceleration
+            if (keys.up || keys.w) {
+                this.speed += this.acceleration * Math.cos(this.angle);
+            } else if (keys.down || keys.s) {
+                this.speed -= this.braking * 0.5;
+            }
+
+            // Drift mechanics
+            if (Math.abs(turnAmount) > 0.01 && this.speed > 2) {
+                this.driftFactor = Math.min(this.driftFactor + 0.02, 0.3);
+            } else {
+                this.driftFactor *= 0.95;
+            }
+
+            // Friction
+            this.speed *= this.friction;
+
+            // Clamp speed
+            if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
+            if (this.speed < -this.maxSpeed * 0.3) this.speed = -this.maxSpeed * 0.3;
+        }
+
+        // Move car
+        const moveAngle = this.angle + Math.PI / 2; // Adjust for canvas orientation
+        this.x += Math.cos(moveAngle) * this.speed;
+        this.y -= Math.sin(moveAngle) * this.speed;
+
+        // Check collisions with track boundaries
+        this.checkTrackBoundaries();
+
+        // Update lap progress
+        this.updateLapProgress();
+    }
+
+    checkTrackBoundaries() {
+        let minDist = Infinity;
+        let closestSegment = null;
+
+        for (let i = 0; i < trackSegments.length; i++) {
+            const seg = trackSegments[i];
+            const dx = this.x - seg.point.x;
+            const dy = this.y - seg.point.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDist) {
+                minDist = dist;
+                closestSegment = seg;
+            }
+        }
+
+        // If too far from track center, slow down and push back
+        if (minDist > trackWidth / 2 && closestSegment) {
+            const dx = this.x - closestSegment.point.x;
+            const dy = this.y - closestSegment.point.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Push car back toward track center
+            if (dist > 0) {
+                const pushX = (dx / dist) * (trackWidth / 2 + 5);
+                const pushY = (dy / dist) * (trackWidth / 2 + 5);
+                this.x -= pushX;
+                this.y -= pushY;
+            }
+
+            // Slow down on grass/off-road
+            this.speed *= 0.95;
+        }
+    }
+
+    updateLapProgress() {
+        // Find closest track segment
+        let minDist = Infinity;
+        let closestIndex = -1;
+
+        for (let i = 0; i < trackSegments.length; i++) {
+            const seg = trackSegments[i];
+            const dx = this.x - seg.point.x;
+            const dy = this.y - seg.point.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDist) {
+                minDist = dist;
+                closestIndex = i;
+            }
+        }
+
+        // Check if we've completed a lap (passed through start area)
+        if (closestIndex > 0 && this.currentTrackIndex < 0) {
+            this.currentTrackIndex = closestIndex;
+        } else if (this.currentTrackIndex >= 0 && closestIndex < this.currentTrackIndex - 5) {
+            // Wrapped around the track
+            this.lapProgress++;
+            this.currentTrackIndex = closestIndex;
+
+            if (!this.isAI) {
+                lapCount++;
+                currentLapStartTime = performance.now() / 1000 - raceTime;
+
+                if (lapCount >= totalLaps) {
+                    gameState = 'finished';
+                    this.finished = true;
+                    this.finishTime = performance.now() / 1000;
+                }
+            }
+        } else {
+            this.currentTrackIndex = closestIndex;
+        }
+    }
+
+    getNextWaypoint() {
+        // Get next waypoint based on current progress
+        const currentIndex = Math.floor(this.lapProgress * trackPoints.length);
+        return trackPoints[currentIndex % trackPoints.length];
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(-this.angle - Math.PI / 2); // Rotate to face direction of movement
+
+        // Car body
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+        // Wheels
+        ctx.fillStyle = '#333';
+        ctx.fillRect(-this.width / 2 + 5, -this.height / 2 - 3, 8, 6);
+        ctx.fillRect(this.width / 2 - 13, -this.height / 2 - 3, 8, 6);
+        ctx.fillRect(-this.width / 2 + 5, this.height / 2 - 3, 8, 6);
+        ctx.fillRect(this.width / 2 - 13, this.height / 2 - 3, 8, 6);
+
+        // Racing stripes
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-this.width / 4, -this.height / 2, this.width / 2, this.height);
+
+        // Headlights
+        if (!this.isAI) {
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(this.width / 2 - 5, -this.height / 2 + 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.width / 2 - 5, this.height / 2 - 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Boost effect
+        if (this.boostTimer > 0) {
+            ctx.fillStyle = `rgba(255, ${Math.random() * 100}, 0, ${this.boostTimer / 10})`;
+            ctx.beginPath();
+            ctx.arc(-this.width / 2 - 5, 0, 8 + Math.random() * 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+}
+
+// ==================== GAME OBJECTS ====================
+let playerCar;
+let aiCars = [];
+let boostPads = [];
+let collectibles = [];
+let particles = [];
+
+function initGame() {
+    // Create player car at start position
+    const startPoint = trackPoints[0];
+    playerCar = new Car(startPoint.x, startPoint.y, '#ff0000');
+    playerCar.angle = 0;
+    playerCar.speed = 0;
+
+    // Create AI cars
+    aiCars = [];
+    for (let i = 1; i <= 3; i++) {
+        const aiStartPoint = trackPoints[(i * 2) % trackPoints.length];
+        const aiCar = new Car(aiStartPoint.x, aiStartPoint.y, ['#00ff00', '#0000ff', '#ffff00'][i - 1], true);
+        aiCar.speed = 3 + Math.random() * 2;
+        aiCars.push(aiCar);
+    }
+
+    // Create boost pads around the track
+    boostPads = [];
+    for (let i = 0; i < 6; i++) {
+        const padIndex = Math.floor(i * trackPoints.length / 6);
+        const padPoint = trackPoints[padIndex];
+        boostPads.push({
+            x: padPoint.x,
+            y: padPoint.y,
+            radius: 30,
+            active: true,
+            cooldown: 0,
+            glowPhase: Math.random() * Math.PI * 2
+        });
+    }
+
+    // Create collectibles (coins) around the track
+    collectibles = [];
+    for (let i = 0; i < 15; i++) {
+        const coinIndex = Math.floor(i * trackPoints.length / 15);
+        const coinPoint = trackPoints[coinIndex];
+        collectibles.push({
+            x: coinPoint.x + (Math.random() - 0.5) * 40,
+            y: coinPoint.y + (Math.random() - 0.5) * 40,
+            collected: false,
+            bobPhase: Math.random() * Math.PI * 2
+        });
+    }
+
+    // Reset game state
+    lapCount = 0;
+    raceTime = 0;
+    currentLapStartTime = performance.now() / 1000;
+    particles = [];
+}
+
+// ==================== INPUT HANDLING ====================
+const keys = {
+    up: false, down: false, left: false, right: false,
+    w: false, s: false, a: false, d: false
+};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+
+    // Menu navigation
+    if (gameState === 'menu' && (e.key === 'Enter' || e.key === 'Space')) {
+        gameState = 'playing';
+        initGame();
+    } else if (gameState === 'finished' && (e.key === 'Enter' || e.key === 'Space')) {
+        gameState = 'menu';
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+});
+
+// ==================== RENDERING ====================
+function drawTrack() {
+    // Draw track surface
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+
+    // Create track path using inner and outer edges
+    for (let i = 0; i < trackSegments.length; i++) {
+        const seg = trackSegments[i];
+        if (i === 0) {
+            ctx.moveTo(seg.innerX, seg.innerY);
+        } else {
+            ctx.lineTo(trackInnerEdge[i].x, trackInnerEdge[i].y);
+        }
+    }
+
+    // Close the path through outer edges
+    for (let i = trackSegments.length - 1; i >= 0; i--) {
+        const seg = trackSegments[i];
+        if (i === trackSegments.length - 1) {
+            ctx.lineTo(seg.outerX, seg.outerY);
+        } else {
+            ctx.lineTo(trackOuterEdge[i].x, trackOuterEdge[i].y);
+        }
+    }
+
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw track markings (center line dashes)
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+
+    for (let i = 0; i < trackSegments.length; i += 3) {
+        const seg = trackSegments[i];
+        ctx.beginPath();
+        ctx.moveTo(seg.point.x - Math.cos(trackPoints[i % trackPoints.length].angle || 0) * 5,
+                   seg.point.y - Math.sin(trackPoints[i % trackPoints.length].angle || 0) * 5);
+        ctx.lineTo(seg.point.x + Math.cos(trackPoints[(i+1) % trackPoints.length].angle || 0) * 5,
+                   seg.point.y + Math.sin(trackPoints[(i+1) % trackPoints.length].angle || 0) * 5);
+        ctx.stroke();
+    }
+
+    // Draw start/finish line
+    const startPoint = trackSegments[0];
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(startPoint.innerX, startPoint.innerY);
+    ctx.lineTo(startPoint.outerX, startPoint.outerY);
+    ctx.stroke();
+
+    // Draw checkered pattern on start line
+    const startX = trackPoints[0].x;
+    const startY = trackPoints[0].y;
+    for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#fff' : '#000';
+        ctx.fillRect(startX - 40 + i * 10, startY - 60, 10, 10);
+    }
+
+    // Draw grass/off-road areas around track
+    ctx.fillStyle = '#2d5a2d';
+    for (let i = 0; i < trackSegments.length; i += 5) {
+        const seg = trackSegments[i];
+        const innerDist = Math.sqrt((seg.innerX - playerCar.x) ** 2 + (seg.innerY - playerCar.y) ** 2);
+
+        if (innerDist > trackWidth / 2) {
+            ctx.beginPath();
+            ctx.arc(seg.point.x, seg.point.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // Draw track barriers/walls
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < trackSegments.length; i += 10) {
+        const seg = trackSegments[i];
+        ctx.beginPath();
+        ctx.arc(seg.point.x, seg.point.y, 5, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
+function drawBoostPads() {
+    for (const pad of boostPads) {
+        if (!pad.active) continue;
+
+        // Glow effect
+        const glow = Math.sin(Date.now() / 500 + pad.glowPhase) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(255, ${Math.floor(glow * 255)}, 0, ${glow})`;
+        ctx.beginPath();
+        ctx.arc(pad.x, pad.y, pad.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner circle
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(pad.x, pad.y, pad.radius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Arrow indicators
+        ctx.strokeStyle = '#ff6600';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 3; i++) {
+            const angle = (i / 3) * Math.PI * 2 + Date.now() / 1000;
+            const x = pad.x + Math.cos(angle) * pad.radius * 0.7;
+            const y = pad.y + Math.sin(angle) * pad.radius * 0.7;
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+
+function drawCollectibles() {
+    for (const coin of collectibles) {
+        if (coin.collected) continue;
+
+        const bob = Math.sin(Date.now() / 500 + coin.bobPhase) * 3;
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y + bob, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shine effect
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(coin.x - 3, coin.y + bob - 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+
+        ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.life})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawHUD() {
+    // Speed display
+    const speed = Math.abs(playerCar.speed).toFixed(1);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, 10, 200, 80);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('SPEED', 20, 35);
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`${speed} km/h`, 20, 65);
+
+    // Lap counter
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, 90, 200, 40);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText(`LAP ${lapCount}/${totalLaps}`, 20, 115);
+
+    // Timer
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, 130, 200, 40);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText(`TIME: ${raceTime.toFixed(2)}s`, 20, 155);
+
+    // Best lap time
+    if (bestLapTime !== Infinity) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(10, 170, 200, 40);
+
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText(`BEST LAP: ${bestLapTime.toFixed(2)}s`, 20, 195);
+    }
+
+    // Controls hint
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(canvas.width - 200, 10, 200, 80);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText('W/↑: Accelerate', canvas.width - 195, 30);
+    ctx.fillText('S/↓: Brake', canvas.width - 195, 45);
+    ctx.fillText('A/← D/→: Steer', canvas.width - 195, 60);
+
+    // Mini-map
+    drawMiniMap();
+}
+
+function drawMiniMap() {
+    const mapX = canvas.width - 200;
+    const mapY = 100;
+    const mapWidth = 180;
+    mapHeight = 150;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
+
+    // Draw track outline on mini-map
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    for (let i = 0; i < trackSegments.length; i++) {
+        const seg = trackSegments[i];
+        if (i === 0) {
+            ctx.moveTo(seg.point.x, seg.point.y);
+        } else {
+            ctx.lineTo(trackInnerEdge[i].x, trackInnerEdge[i].y);
+        }
+    }
+
+    // Close the loop
+    for (let i = trackSegments.length - 1; i >= 0; i--) {
+        const seg = trackSegments[i];
+        if (i === trackSegments.length - 1) {
+            ctx.lineTo(seg.outerX, seg.outerY);
+        } else {
+            ctx.lineTo(trackOuterEdge[i].x, trackOuterEdge[i].y);
+        }
+    }
+
+    ctx.closePath();
+    ctx.stroke();
+
+    // Draw player position on mini-map
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.arc(playerCar.x - mapX + 90, playerCar.y - mapY + 75, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw AI cars on mini-map
+    for (const ai of aiCars) {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(ai.x - mapX + 90, ai.y - mapY + 75, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawMenu() {
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#1a1a2e');
+    gradient.addColorStop(0.5, '#16213e');
+    gradient.addColorStop(1, '#0f0f1f');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Title
+    ctx.fillStyle = '#ff0000';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('GTA RACING', canvas.width / 2, 150);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText('CHAMPIONSHIP', canvas.width / 2, 200);
+
+    // Subtitle
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('GEMINI RACE GAME', canvas.width / 2, 250);
+
+    // Instructions
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.fillText('Press ENTER or SPACE to start racing!', canvas.width / 2, 350);
+
+    // Controls info
+    ctx.fillStyle = '#aaa';
+    ctx.font = '14px Arial';
+    ctx.fillText('W/↑ - Accelerate | S/↓ - Brake', canvas.width / 2, 420);
+    ctx.fillText('A/← D/→ - Steer', canvas.width / 2, 450);
+
+    // Decorative elements
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 10; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.random() * 5 + 2, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Reset alignment
+    ctx.textAlign = 'left';
+}
+
+function drawFinishScreen() {
+    // Background overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Title
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('RACE COMPLETE!', canvas.width / 2, 150);
+
+    // Stats
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Arial';
+    ctx.fillText(`Total Time: ${raceTime.toFixed(2)}s`, canvas.width / 2, 250);
+    ctx.fillText(`Best Lap: ${bestLapTime !== Infinity ? bestLapTime.toFixed(2) : 'N/A'}s`, canvas.width / 2, 300);
+
+    // Controls info
+    ctx.fillStyle = '#aaa';
+    ctx.font = '16px Arial';
+    ctx.fillText('Press ENTER or SPACE to return to menu', canvas.width / 2, 450);
+
+    // Reset alignment
+    ctx.textAlign = 'left';
+}
+
+// ==================== GAME LOOP ====================
+let lastTime = performance.now();
+
+function gameLoop() {
+    const now = performance.now();
+    const deltaTime = (now - lastTime) / 1000;
+    lastTime = now;
+
+    // Update game state
+    if (gameState === 'playing') {
+        raceTime += deltaTime;
+
+        // Update player car
+        playerCar.update(keys);
+
+        // Check boost pad collisions
+        for (const pad of boostPads) {
+            const dx = playerCar.x - pad.x;
+            const dy = playerCar.y - pad.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < pad.radius && pad.cooldown <= 0) {
+                // Apply boost
+                playerCar.speed += 2;
+                playerCar.boostTimer = 10;
+                pad.cooldown = 30; // Cooldown time in frames
+
+                // Spawn particles
+                for (let i = 0; i < 5; i++) {
+                    particles.push({
+                        x: pad.x + Math.random() * 20 - 10,
+                        y: pad.y + Math.random() * 20 - 10,
+                        vx: Math.random() * 4 - 2,
+                        vy: Math.random() * 4 - 2,
+                        life: 1,
+                        size: Math.random() * 5 + 2,
+                        r: 255, g: Math.floor(Math.random() * 100), b: 0
+                    });
+                }
+            }
+        }
+
+        // Update boost pad cooldowns
+        for (const pad of boostPads) {
+            if (pad.cooldown > 0) {
+                pad.cooldown -= deltaTime;
+            }
+        }
+
+        // Check collectible collisions
+        for (const coin of collectibles) {
+            if (!coin.collected) {
+                const dx = playerCar.x - coin.x;
+                const dy = playerCar.y - coin.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 15) {
+                    coin.collected = true;
+
+                    // Spawn particles
+                    for (let i = 0; i < 8; i++) {
+                        particles.push({
+                            x: coin.x,
+                            y: coin.y,
+                            vx: Math.random() * 4 - 2,
+                            vy: Math.random() * 4 - 2,
+                            life: 1,
+                            size: Math.random() * 3 + 1,
+                            r: 255, g: 215, b: 0
+                        });
+                    }
+                }
+            }
+        }
+
+        // Update AI cars
+        for (const ai of aiCars) {
+            ai.update();
+        }
+
+        // Draw everything
+        drawTrack();
+        drawBoostPads();
+        drawCollectibles();
+        drawParticles();
+
+        // Draw AI cars first, then player car on top
+        for (const ai of aiCars) {
+            ai.draw(ctx);
+        }
+        playerCar.draw(ctx);
+
+        // Update HUD
+        drawHUD();
+    } else if (gameState === 'menu') {
+        drawMenu();
+    } else if (gameState === 'finished') {
+        drawFinishScreen();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// ==================== INITIALIZATION ====================
+buildTrack();
+gameLoop();
+</script>
+</body>
+</html>
