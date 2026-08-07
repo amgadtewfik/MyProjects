@@ -59,11 +59,21 @@ sk-or-*
 .env.*.local
 
 # Excluded embedded git repos
-CropCut/
 how-llms-work/
 ply_viewer/
 Claude/
 Hermes/
+
+# CropCut build artifacts (was in its own .gitignore, repeated here so
+# the top-level repo skips build/ dist/ .venv/ ffmpeg inside CropCut/)
+CropCut/build/
+CropCut/dist/
+CropCut/.venv/
+CropCut/CropCut.app/
+CropCut/ffmpeg
+CropCut/files.zip
+CropCut/files/
+CropCut/backup/
 gaussian splat tools/gaussian-splat-cleaner/
 gaussian splat tools/gaussian-splat-viewer/
 
