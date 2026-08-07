@@ -30,6 +30,17 @@ smoother dense-cloud appearance, interactive camera control, and
 per-point color from PLY attributes. Cross-compiled from macOS using
 MinGW-w64.
 
+### 🎞️ m2ts_to_mp4 — Batch m2ts Converter + JP→EN Subtitles
+[`m2ts_to_mp4/`](./m2ts_to_mp4/) · Python · FFmpeg + faster-whisper
+
+Batch-converts MPEG-TS `.m2ts` files (e.g. Blu-ray recordings) to
+`.mp4`. Wraps `ffmpeg` for the transcode and uses `faster-whisper` +
+`deep-translator` to optionally generate Japanese→English SRT
+subtitles. Includes a single-file CLI (`converter.py`) plus batch
+drivers for both Windows (`convert_all.bat`) and macOS/Linux
+(`convert_all.sh`). Supports codec choice (`copy` / `libx264` /
+`libx265`), CRF control, and `--faststart` for web playback.
+
 ## Layout
 
 ```
