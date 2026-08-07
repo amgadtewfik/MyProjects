@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberDrifter X1 - GTA Style Racing</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: 'Press Start 2P', system-ui;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 14px;
+            text-shadow: 1px 1px 0 #000;
+            z-index: 10;
+            width: 300px;
+        }
+
+        .hud-box {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00d9ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 5px;
+            box-shadow: 0 0 10px #00d9ff;
+        }
+
+        #hud-title {
+            color: #00d9ff;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        #speed-display {
+            font-size: 24px;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        #controls-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #aaa;
+            font-size: 12px;
+            z-index: 10;
+            text-align: left;
+        }
+
+        #boost-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #ff00ff;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        #main-menu, #win-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+        }
+
+        .menu-title {
+            font-size: 40px;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 0 #00d9ff;
+            margin-bottom: 20px;
+        }
+
+        .menu-subtitle {
+            font-size: 14px;
+            color: #00d9ff;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+
+        .btn {
+            background: #00d9ff;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-family: 'Press Start 2P', system-ui;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.1s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            background: #fff;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        #win-screen h1 {
+            color: #00ff00;
+            font-size: 50px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        #lap-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 10;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <div class="hud-box">
+            <div id="hud-title">CYBERDRIFTER X1</div>
+            <div id="speed-display">0 km/h</div>
+        </div>
+        <div class="hud-box">
+            <div>TIME: <span id="hud-time" style="color:#ffcc00">00:00</span></div>
+        </div>
+    </div>
+
+    <div id="lap-counter">LAP: 1 / 3</div>
+
+    <div id="controls-info">
+        <div>WASD / Arrows to Steer</div>
+        <div>W / Up to Accelerate</div>
+        <div>S / Down to Brake & Reverse</div>
+        <div>A / Left to Brake & Reverse</div>
+        <div>B / Right to Brake & Reverse</div>
+    </div>
+
+    <div id="boost-indicator">BOOST: 0%</div>
+
+    <div id="main-menu">
+        <div class="menu-title">CYBERDRIFTER X1</div>
+        <div class="menu-subtitle">GTA-STYLE RACING SIMULATOR</div>
+        <button class="btn" onclick="startGame()">START ENGINE</button>
+    </div>
+
+    <div id="win-screen" style="display: none;">
+        <div class="menu-title">QUALIFIED</div>
+        <div class="menu-subtitle">LAP TIME: <span id="hud-time-win" style="color:#00ff00">00:00</span></div>
+        <button class="btn" onclick="resetGame()">RACE AGAIN</button>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const FPS = 60;
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+        
+        // Physics Constants
+        const ACCEL = 0.2;
+        const FRICTION_ROAD = 0.98;
+        const FRICTION_GRASS = 0.85;
+        const DRIFT = 0.96; // Lower = more drift
+        const TURN_SPEED = 0.08;
+        const BOOST_CHARGE = 100;
+        const BOOST_MAX = 1.5;
+
+        // --- Game State ---
+        let canvas, ctx;
+        let gameState = {
+            running: false,
+            laps: 1,
+            time: 0,
+            totalTime: 0,
+            checkpoints: [],
+            checkpointsCollected: 0,
+            winLaps: 3
+        };
+
+        // --- Input Handling ---
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.key] = true);
+        window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        // --- Track Generation ---
+        // 0: Grass, 1: Road, 2: Barrier, 3: Boost, 4: Checkpoint
+        const trackMap = [
+            // Top straight
+            [
+                {x: 0, y: 0, w: 800, h: 60, type: 1}, 
+                {x: 0, y: 60, w: 800, h: 60, type: 1},
+                {x: 0, y: 120, w: 800, h: 60, type: 1},
+                {x: 0, y: 180, w: 800, h: 60, type: 1},
+            ],
+            // Left turn into grass shortcut
+            [
+                {x: 0, y: 240, w: 800, h: 60, type: 1},
+                {x: 0, y: 300, w: 800, h: 60, type: 1},
+                {x: 0, y: 360, w: 800, h: 60, type: 1},
+            ]
+        ];
+
+        // Let's manually define a track grid for better control
+        const gridSize = 40;
+        const trackGrid = [];
+        const trackWidth = 40;
+        const roadColor = "#555";
+        const grassColor = "#2a5d2a";
+        const barrierColor = "#aaa";
+        
+        // Build a custom track
+        // 0: Road, 1: Grass, 2: Barrier
+        for(let y = 0; y < 15; y++) {
+            for(let x = 0; x < 20; x++) {
+                if (y === 0 || y === 14 || x === 0 || x === 19) trackGrid.push({x: x*gridSize, y: y*gridSize, w: gridSize, h: gridSize, type: 2});
+            }
+        }
+        // Main straight
+        for(let y = 2; y <= 4; y++) {
+            for(let x = 2; x <= 18; x++) {
+                trackGrid.push({x: x*gridSize, y: y*gridSize, w: gridSize, h: gridSize, type: 1});
+            }
+        }
+        // Shortcut (Grass)
+        for(let y = 6; y <= 9; y++) {
+            for(let x = 2; x <= 10; x++) {
+                trackGrid.push({x: x*gridSize, y: y*gridSize, w: gridSize, h: gridSize, type: 1});
+            }
+        }
+        // Bottom straight
+        for(let y = 11; y <= 13; y++) {
+            for(let x = 2; x <= 18; x++) {
+                trackGrid.push({x: x*gridSize, y: y*gridSize, w: gridSize, h: gridSize, type: 1});
+            }
+        }
+        // Curved section
+        for(let x = 0; x < 20; x++) {
+            trackGrid.push({x: x*gridSize, y: 15*gridSize, w: gridSize, h: gridSize, type: 2});
+        }
+
+        // Checkpoints
+        gameState.checkpoints = [
+            {x: 2*gridSize, y: 2*gridSize},
+            {x: 2*gridSize, y: 6*gridSize},
+            {x: 2*gridSize, y: 11*gridSize}
+        ];
+
+        // Boost pads
+        const boostPads = [
+            {x: 4*gridSize, y: 3*gridSize},
+            {x: 8*gridSize, y: 8*gridSize},
+            {x: 14*gridSize, y: 12*gridSize}
+        ];
+
+        // --- Entities ---
+        const player = {
+            x: 2 * gridSize + 20,
+            y: 2 * gridSize + 20,
+            w: 30,
+            h: 50,
+            angle: 0,
+            speed: 0,
+            boost: 0,
+            boostTimer: 0
+        };
+
+        const aiCars = [
+            {x: 2 * gridSize + 20, y: 6 * gridSize + 20, w: 30, h: 50, color: '#ff5555', speed: 0, angle: 0},
+            {x: 2 * gridSize + 20, y: 11 * gridSize + 20, w: 30, h: 50, color: '#5555ff', speed: 0, angle: 0}
+        ];
+
+        // --- Core Logic ---
+
+        function updatePhysics() {
+            // Player Acceleration
+            let accel = ACCEL;
+            let brake = 0;
+            let reverse = 0;
+
+            if (keys['w'] || keys['ArrowUp']) accel = ACCEL;
+            if ((keys['a'] || keys['ArrowLeft'] || keys['s'] || keys['ArrowDown']) && player.boost === 0) reverse = -ACCEL;
+            if ((keys['d'] || keys['ArrowRight']) && player.boost === 0) brake = ACCEL;
+
+            // Apply Acceleration
+            player.speed += accel;
+            if (player.speed > 0) player.speed -= brake;
+            if (player.speed < 0) player.speed += reverse;
+            
+            // Boost Logic
+            if (player.boostTimer > 0) {
+                player.speed *= 1.2;
+                player.boostTimer--;
+            } else {
+                // Natural decay of boost
+                if (player.boost > 0) player.boost -= 0.5;
+            }
+
+            // Apply Velocity
+            player.x += player.speed * Math.cos(player.angle);
+            player.y += player.speed * Math.sin(player.angle);
+
+            // Friction
+            let currentFriction = FRICTION_ROAD;
+            let isGrass = false;
+            
+            // Check if on grass
+            for(let cell of trackGrid) {
+                if (cell.type === 1 && 
+                    player.x >= cell.x && player.x <= cell.x + cell.w &&
+                    player.y >= cell.y && player.y <= cell.y + cell.h) {
+                    currentFriction = FRICTION_GRASS;
+                    isGrass = true;
+                    break;
+                }
+            }
+            player.speed *= currentFriction;
+
+            // Drift / Turning
+            if (keys['a'] || keys['ArrowLeft']) {
+                player.angle -= TURN_SPEED;
+            }
+            if (keys['d'] || keys['ArrowRight']) {
+                player.angle += TURN_SPEED;
+            }
+
+            // Off-road drift mechanics
+            // If moving fast and turning, we slide
+            let driftAngle = player.angle;
+            if (player.speed < 0) player.speed = 0; // Reverse speed doesn't affect angle in this arcade model, but we can add it if desired.
+
+            // --- Collisions ---
+            for(let cell of trackGrid) {
+                if (cell.type === 2) { // Barrier
+                    // Simple AABB collision
+                    if (player.x + player.w > cell.x && player.x < cell.x + cell.w &&
+                        player.y + player.h > cell.y && player.y < cell.y + cell.h) {
+                        // Bounce
+                        player.speed *= -0.5;
+                        player.x = Math.max(cell.x, player.x - player.w);
+                        player.y = Math.max(cell.y, player.y - player.h);
+                        player.speed *= 0.8; // Impact loss
+                    }
+                }
+            }
+        }
+
+        function updateAI() {
+            aiCars.forEach(car => {
+                // Simple AI: Follow a predefined path
+                // We'll just make them drive in a circle for this demo
+                car.angle += 0.1;
+                car.speed = 5; 
+                car.x += car.speed * Math.cos(car.angle);
+                car.y += car.speed * Math.sin(car.angle);
+                
+                // Reset speed at barriers
+                for(let cell of trackGrid) {
+                    if (cell.type === 2) {
+                        if (car.x + car.w > cell.x && car.x < cell.x + cell.w &&
+                            car.y + car.h > cell.y && car.y < cell.y + cell.h) {
+                            car.speed *= -0.5;
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkLapLogic() {
+            // Check checkpoints
+            for(let cp of gameState.checkpoints) {
+                if (player.x > cp.x && player.x < cp.x + 30 &&
+                    player.y > cp.y && player.y < cp.y + 30) {
+                    if (!gameState.checkpointsCollected) {
+                        gameState.checkpointsCollected = true;
+                        gameState.laps++;
+                        gameState.time = 0;
+                        document.getElementById('lap-counter').innerText = "LAP: " + gameState.laps + " / 3";
+                        document.getElementById('hud-time').innerText = "00:00";
+                        document.getElementById('hud-time-win').innerText = "00:00";
+                        if(gameState.laps > gameState.winLaps) {
+                            endGame(true);
+                        }
+                    }
+                }
+            }
+            
+            // Check finish line (approximate at end of track)
+            // Assuming finish line is near bottom straight
+            let finishLineX = 18 * gridSize;
+            let finishLineY = 13 * gridSize;
+            if (player.x > finishLineX - 50 && player.x < finishLineX + 50 &&
+                player.y > finishLineY - 50 && player.y < finishLineY + 50) {
+                    if (!gameState.checkpointsCollected) {
+                        gameState.checkpointsCollected = true;
+                        gameState.laps++;
+                        document.getElementById('lap-counter').innerText = "LAP: " + gameState.laps + " / 3";
+                        document.getElementById('hud-time').innerText = "00:00";
+                        if(gameState.laps > gameState.winLaps) {
+                            endGame(true);
+                        }
+                    }
+            }
+        }
+
+        function updateUI() {
+            // Speed
+            let kmh = Math.floor(Math.abs(player.speed) * 2);
+            document.getElementById('speed-display').innerText = kmh + " km/h";
+            document.getElementById('speed-display').style.color = player.speed > 0 ? "#00ff00" : "#ff0000";
+
+            // Boost
+            let boostPercent = Math.floor(player.boost);
+            document.getElementById('boost-indicator').innerText = "BOOST: " + boostPercent + "%";
+            document.getElementById('boost-indicator').style.color = boostPercent > 0 ? "#ff00ff" : "#aaa";
+
+            // Time
+            let minutes = Math.floor(gameState.time / 60);
+            let seconds = Math.floor(gameState.time % 60);
+            document.getElementById('hud-time').innerText = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+        }
+
+        function drawTrack() {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for(let cell of trackGrid) {
+                if (cell.type === 1) {
+                    // Road
+                    ctx.fillStyle = roadColor;
+                    ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
+                    // Road markings
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cell.x, cell.y);
+                    ctx.lineTo(cell.x + cell.w, cell.y);
+                    ctx.stroke();
+                } else if (cell.type === 2) {
+                    // Barrier
+                    ctx.fillStyle = barrierColor;
+                    ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
+                }
+            }
+            
+            // Grass Texture
+            ctx.fillStyle = grassColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+            
+            // Shadow
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, player.w, player.h);
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Body
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, player.w, player.h);
+
+            // Windows
+            ctx.fillStyle = "#0055ff";
+            ctx.fillRect(10, 10, 15, 15); // Windshield
+            ctx.fillRect(22, 10, 15, 15); // Rear window
+            ctx.fillRect(15, 20, 10, 10); // Roof
+
+            // Wheels
+            ctx.fillStyle = "#222";
+            ctx.fillRect(2, 10, 6, 12); // Front Left
+            ctx.fillRect(22, 10, 6, 12); // Front Right
+            ctx.fillRect(2, 32, 6, 12); // Rear Left
+            ctx.fillRect(22, 32, 6, 12); // Rear Right
+
+            // Directional lights
+            if (player.speed < 0) {
+                ctx.fillStyle = "#ffaa00"; // Brake lights
+                ctx.fillRect(2, 35, 8, 2);
+                ctx.fillRect(20, 35, 8, 2);
+            } else {
+                ctx.fillStyle = "#ff0000"; // Taillights
+                ctx.fillRect(2, 35, 8, 2);
+                ctx.fillRect(20, 35, 8, 2);
+            }
+            ctx.restore();
+        }
+
+        function drawAI() {
+            aiCars.forEach(car => {
+                ctx.save();
+                ctx.translate(car.x, car.y);
+                ctx.rotate(car.angle);
+                ctx.fillStyle = car.color;
+                ctx.fillRect(0, 0, car.w, car.h);
+                
+                // Windows
+                ctx.fillStyle = "#0055ff";
+                ctx.fillRect(10, 10, 15, 15);
+                ctx.fillRect(22, 10, 15, 15);
+                ctx.restore();
+            });
+        }
+
+        function gameLoop() {
+            if (!gameState.running) return;
+
+            updatePhysics();
+            updateAI();
+            checkLapLogic();
+            updateUI();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTrack();
+            drawAI();
+            drawPlayer();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('win-screen').style.display = 'none';
+            
+            // Reset State
+            gameState.running = true;
+            gameState.laps = 1;
+            gameState.time = 0;
+            gameState.checkpointsCollected = false;
+            
+            // Reset Player
+            player.x = 2 * gridSize + 20;
+            player.y = 2 * gridSize + 20;
+            player.angle = 0;
+            player.speed = 0;
+            player.boost = 0;
+            player.boostTimer = 0;
+
+            document.getElementById('lap-counter').innerText = "LAP: 1 / 3";
+            document.getElementById('hud-time').innerText = "00:00";
+            document.getElementById('speed-display').innerText = "0 km/h";
+
+            gameLoop();
+        }
+
+        function resetGame() {
+            document.getElementById('win-screen').style.display = 'none';
+            startGame();
+        }
+
+        function endGame(win) {
+            gameState.running = false;
+            document.getElementById('win-screen').style.display = 'flex';
+            if (win) {
+                document.getElementById('hud-time-win').innerText = document.getElementById('hud-time').innerText;
+            } else {
+                // Loss condition logic (e.g., crashing)
+                document.getElementById('hud-time-win').innerText = "DQ";
+            }
+        }
+
+        // Initialize
+        canvas = document.getElementById('gameCanvas');
+        ctx = canvas.getContext('2d');
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+        
+        // Add Boost Pad Collision
+        function checkBoostPads() {
+            for(let pad of boostPads) {
+                if (player.x > pad.x && player.x < pad.x + 30 &&
+                    player.y > pad.y && player.y < pad.y + 30) {
+                    player.boost = BOOST_CHARGE;
+                    player.boostTimer = 300; // 5 seconds at 60fps
+                    document.getElementById('boost-indicator').innerText = "BOOST: 100%";
+                    document.getElementById('boost-indicator').style.color = "#00ff00";
+                }
+            }
+        }
+        
+        // Run loop
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>

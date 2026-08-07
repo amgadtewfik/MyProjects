@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="claude-code" agent="minimax-m3" version="24.0.0">
+  <diagram name="Job Tracker — Codebase Map" id="codebase-map">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ============== TITLE ============== -->
+        <mxCell id="title" value="Job Tracker — File Components &amp; Exports" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#0d0d0f;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1620" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Generated 2026-07-29 · job_tracker/ · draw.io native (.drawio)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#71717a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="58" width="1620" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ============== SWIMLANE: BROWSER (CLIENT) ============== -->
+        <mxCell id="sw_client" value="Browser / Client Tier (localhost:8766)" style="swimlane;startSize=28;rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f4f5;strokeColor=#a1a1aa;fontSize=14;fontStyle=1;verticalAlign=top;fontColor=#27272a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="500" height="430" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f_index" value="index.html&#xa;51 KB · 2026-07-28&#xa;Vanilla JS SPA — no build step" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="30" y="50" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="f_index_dm" value="DOM-Ready boot:&#xa;document.addEventListener&#xa;('DOMContentLoaded') → loadData()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#a855f7;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="260" y="50" width="210" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f_loadData" value="loadData()&#xa;async function → fetch JSON&#xa;assigns window.applications[]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="30" y="140" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f_renderAll" value="renderAll() → renderStats, renderAppliedSection,&#xa;renderRejectedSection, renderFollowUps,&#xa;renderSuccessRate, renderWeeklyStats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="260" y="140" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f_mutations" value="Mutation handlers:&#xa;• saveApp / quickAdd&#xa;• editApplication → changeStatus&#xa;• markInterview / markRejected&#xa;• deleteApplication" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="30" y="220" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f_pending" value="search / filter&#xa;setSuccessThreshold(days)&#xa;response-rate cutoff logic" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="260" y="220" width="210" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f_fetch_api" value="fetch() calls →&#xa;GET    /api/applications&#xa;GET    /api/pending-jobs&#xa;POST   /api/applications {application, index}&#xa;DELETE /api/applications {index}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#f59e0b;fontStyle=1;fontSize=10;" vertex="1" parent="sw_client">
+          <mxGeometry x="30" y="320" width="440" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="client_internal_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_client" source="f_index" target="f_index_dm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="client_internal_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_client" source="f_index_dm" target="f_loadData">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="client_internal_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_client" source="f_loadData" target="f_renderAll">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="client_internal_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_client" source="f_renderAll" target="f_mutations">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="client_internal_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_client" source="f_mutations" target="f_pending">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="client_internal_6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_client" source="f_pending" target="f_fetch_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============== SWIMLANE: GATEWAY (Python HTTP) ============== -->
+        <mxCell id="sw_gateway" value="API Gateway · Python stdlib http.server (localhost:8766)" style="swimlane;startSize=28;rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f4f5;strokeColor=#a1a1aa;fontSize=14;fontStyle=1;verticalAlign=top;fontColor=#27272a;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="640" height="430" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g_run" value="run.sh&#xa;2 lines · 2026-07-24&#xa;exec: python job_tracker_server.py" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fef3c7;strokeColor=#f59e0b;fontSize=10;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="20" y="45" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g_server" value="job_tracker_server.py&#xa;23 KB · 2026-07-28&#xa;entry point &amp; HTTPHandler" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="210" y="45" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g_parser" value="parser.py&#xa;10 KB · 2026-07-23&#xa;pure-function LinkedIn report parser&#xa;+ Quebec skill extractor" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="430" y="45" width="190" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Imports -->
+        <mxCell id="imp_run_server" value="if __name__ == '__main__' → run_server()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fde68a;strokeColor=#f59e0b;fontSize=10;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="20" y="120" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="imp_runserver" value="HTTPServer(('localhost', 8766), TrackerHandler)&#xa;server.serve_forever()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=10;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="210" y="120" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="imp_parser" value="from parser import parse_linkedin_report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fde68a;strokeColor=#f59e0b;fontSize=10;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="430" y="120" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g_handler" value="TrackerHandler(BaseHTTPRequestHandler)&#xa;• do_GET — GET /, /api/applications, /api/pending-jobs&#xa;• do_POST — /api/applications {application, index}&#xa;• do_DELETE — /api/applications {index}&#xa;• add_security_headers: CSP frame-ancestors 'none', X-Frame-Options DENY, X-Content-Type-Options nosniff&#xa;• send_json_error(code, message) — never raises" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=10;fontStyle=1;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="20" y="180" width="600" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g_methods" value="Methods&#xa;• read_tracker() → {applications, activeApplications, rejectedApplications, lastUpdated}&#xa;• update_tracker(app, index) → archive + write_tracker&#xa;• delete_application(index) → archive + write_tracker&#xa;• write_tracker(apps) → backup → tmp → fsync → verify → os.replace&#xa;• _backup_tracker_file() / _prune_old_backups() — keeps MAX_BACKUPS=200&#xa;• _archive_row(path, app, action) — append-only tombstone w/ fsync&#xa;• _parse_tracker_content(content) — shared markdown table parser&#xa;• log_error(exc) — append traceback to server.log, never raises" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#10b981;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="sw_gateway">
+          <mxGeometry x="20" y="280" width="600" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g_e_run_s" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#f59e0b;" edge="1" parent="sw_gateway" source="g_run" target="imp_run_server">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_e_s_run" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#f59e0b;" edge="1" parent="sw_gateway" source="imp_run_server" target="imp_runserver">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_e_s_handler" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_gateway" source="imp_runserver" target="g_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_e_p_imp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#3b82f6;" edge="1" parent="sw_gateway" source="g_parser" target="imp_parser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_e_imp_h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#3b82f6;" edge="1" parent="sw_gateway" source="imp_parser" target="g_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_e_h_m" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7c3aed;" edge="1" parent="sw_gateway" source="g_handler" target="g_methods">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============== SWIMLANE: PARSER MODULE EXPORTS ============== -->
+        <mxCell id="sw_parser" value="parser.py — public exports" style="swimlane;startSize=28;rounded=1;whiteSpace=wrap;html=1;fillColor=#eef2ff;strokeColor=#6366f1;fontSize=13;fontStyle=1;verticalAlign=top;fontColor=#1e1b4b;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="100" width="420" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="p_lr" value="parse_linkedin_report(report_file_path)&#xa;→ (jobs[], report_date)&#xa;Section parser: ## Senior Developer, ## Full Stack Developer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#6366f1;fontSize=10;" vertex="1" parent="sw_parser">
+          <mxGeometry x="15" y="50" width="390" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p_norm" value="normalize_title(title) — strip diacritics, lowercase, collapse whitespace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#6366f1;fontSize=10;" vertex="1" parent="sw_parser">
+          <mxGeometry x="15" y="115" width="390" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_skills" value="extract_skills_from_title(title, skill_patterns)&#xa;→ (matched_names: set, matched_keys: list)&#xa;groups: Frontend · Backend · Database · DevOps/Cloud" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#6366f1;fontSize=10;" vertex="1" parent="sw_parser">
+          <mxGeometry x="15" y="165" width="390" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="p_const" value="Constants (module-level)&#xa;• SOUTH_SHORE — 13 South Shore cities list&#xa;• SOUTH_SHORE_POPULATION_CITIES — set()&#xa;• SKILL_PATTERNS — dict of skill-group → tuple of pattern keywords&#xa;• month_map — 3-letter month name → month number" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#94a3b8;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="sw_parser">
+          <mxGeometry x="15" y="240" width="390" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="p_private" value="Closure (not exported):&#xa;parse_posted_date(posted_str) — used inside parse_linkedin_report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;fontSize=10;fontStyle=2;" vertex="1" parent="sw_parser">
+          <mxGeometry x="15" y="360" width="390" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ============== SWIMLANE: STORAGE (markdown-as-DB) ============== -->
+        <mxCell id="sw_storage" value="Storage Tier — markdown files (single source of truth + audit logs + backups)" style="swimlane;startSize=28;rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontSize=14;fontStyle=1;verticalAlign=top;fontColor=#14532d;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="1600" height="430" as="geometry" />
+        </mxCell>
+
+        <!-- Live data -->
+        <mxCell id="s_live_box" value="LIVE — single mutable file" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" vertex="1" parent="sw_storage">
+          <mxGeometry x="20" y="50" width="380" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="s_tracker" value="job_applications.md&#xa;12 KB · 2026-07-29&#xa;Schema: Summary table + ## Applications table&#xa;+ ## Rejected Applications table&#xa;Columns: #, Date, Company, Title, Source, Status, Contact, Follow-up, Notes" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#16a34a;fontSize=10;" vertex="1" parent="sw_live_box">
+          <mxGeometry x="15" y="35" width="350" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s_report" value="linkedin_jobs_montreal_southshore.md&#xa;24 KB · 2026-07-19&#xa;INPUT FEED — LinkedIn scrape&#xa;Sections: ## Senior Developer, ## Full Stack Developer&#xa;Rows: #, Fit, Title, Company, Location, Area, Posted, Link" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#16a34a;fontSize=10;" vertex="1" parent="sw_live_box">
+          <mxGeometry x="15" y="145" width="350" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="s_log" value="server.log&#xa;0 bytes · 2026-07-28&#xa;append-only traceback sink (may grow)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#16a34a;fontSize=10;" vertex="1" parent="sw_live_box">
+          <mxGeometry x="15" y="245" width="350" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="s_resume" value="resume_job_analysis.md&#xa;5.5 KB · 2026-07-24&#xa;human-authored reference doc" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#16a34a;fontSize=10;" vertex="1" parent="sw_live_box">
+          <mxGeometry x="15" y="310" width="350" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Append-only logs -->
+        <mxCell id="s_audit_box" value="AUDIT — append-only logs (never truncated)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fed7aa;strokeColor=#ea580c;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" vertex="1" parent="sw_storage">
+          <mxGeometry x="420" y="50" width="380" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="s_deleted" value="deleted_applications.md&#xa;receives rows from delete_application&#xa;writes row + 'deleted' tag + ISO timestamp" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#ea580c;fontSize=10;" vertex="1" parent="sw_audit_box">
+          <mxGeometry x="15" y="35" width="350" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s_changelog" value="applications_changelog.md&#xa;0.9 KB · 2026-07-29&#xa;receives PREVIOUS row values from update_tracker&#xa;(when index points at an existing row)&#xa;writes row + 'edited previous values' + ISO timestamp" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#ea580c;fontSize=10;" vertex="1" parent="sw_audit_box">
+          <mxGeometry x="15" y="105" width="350" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="audit_note" value="Both files share the schema:&#xa;| Timestamp | Action | Date | Company | Title | Source | Status | Contact | Follow-up | Notes |&#xa;&#xa;_archive_row() writes only here, with f.flush() + os.fsync() — destruction is gated on archive success." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#fb923c;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="sw_audit_box">
+          <mxGeometry x="15" y="195" width="350" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Backups (rotating snapshots) -->
+        <mxCell id="s_backup_box" value="BACKUP — rotating snapshots (capped at MAX_BACKUPS=200)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bae6fd;strokeColor=#0284c7;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" vertex="1" parent="sw_storage">
+          <mxGeometry x="820" y="50" width="380" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="s_snap_dir" value="backup/tracker_snapshots/&#xa;~6 files · pruned to most-recent 200&#xa;filename pattern:&#xa;job_applications_YYYYMMDD_HHMMSS_ffffff.md" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#0284c7;fontSize=10;" vertex="1" parent="sw_backup_box">
+          <mxGeometry x="15" y="35" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="s_backup_logic" value="_backup_tracker_file() runs BEFORE every write_tracker().&#xa;&#xa;1. shutil.copy2(TRACKER_FILE → snapshots/) — timestamped&#xa;2. _prune_old_backups() — sort + remove excess&#xa;&#xa;Failure mode: best-effort, never blocks a sanity-checked write,&#xa;but raises loud if the snapshots directory itself is unwritable." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#0ea5e9;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="sw_backup_box">
+          <mxGeometry x="15" y="115" width="350" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- Legacy / stale files -->
+        <mxCell id="s_legacy_box" value="LEGACY — copies &amp; backups of the previous server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#64748b;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" vertex="1" parent="sw_storage">
+          <mxGeometry x="1220" y="50" width="360" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="s_legacy_list" value="backup/job_tracker_server copy.py&#xa;backup/job_tracker_server copy 2.py&#xa;backup/job_tracker_server_backup.py&#xa;backup/job_tracker_server.py&#xa;backup/job_tracker_server.py.bak&#xa;backup/parser.py&#xa;backup/index.html&#xa;&#xa;Not wired into runtime — kept as historical artifacts only." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#94a3b8;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="sw_legacy_box">
+          <mxGeometry x="15" y="35" width="330" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="s_doc_box" value="Documents (human-authored)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf4ff;strokeColor=#a855f7;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" vertex="1" parent="sw_legacy_box">
+          <mxGeometry x="15" y="225" width="330" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="s_doc_list" value="improvements.md  (10 KB)  · plans/backlog&#xa;architecture.md (this turn) — Mermaid maps&#xa;.DS_Store  (macOS metadata)&#xa;__pycache__/ — Python bytecode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#c084fc;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="sw_legacy_box">
+          <mxGeometry x="15" y="250" width="330" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ============== EDGES between tiers ============== -->
+        <mxCell id="e_browser_to_gateway" value="HTTP/1.1 · localhost:8766&#xa;fetch() requests" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#0d0d0f;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" parent="1" source="f_fetch_api" target="g_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_gateway_to_tracker" value="read_tracker · write_tracker (tmp→fsync→verify→os.replace)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#16a34a;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="g_methods" target="s_tracker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gateway_to_report" value="parse_linkedin_report (read)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#16a34a;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="imp_parser" target="s_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_methods_to_audit" value="_archive_row — append-only (delete)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ea580c;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="g_methods" target="s_deleted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_methods_to_changelog" value="_archive_row — append-only (edit previous values)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ea580c;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="g_methods" target="s_changelog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_methods_to_snap" value="_backup_tracker_file — shutil.copy2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#0284c7;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="g_methods" target="s_snap_dir">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_methods_to_log" value="log_error — traceback append (best-effort, never raises)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#16a34a;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="g_handler" target="s_log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_browser_to_render" value="render stats, sections, follow-ups" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#7c3aed;strokeWidth=1;fontSize=10;dashed=1;" edge="1" parent="1" source="f_renderAll" target="g_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============== LEGEND ============== -->
+        <mxCell id="legend" value="Legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#52525b;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1010" width="1600" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_note" value="📄 source file (.md / .py / .sh / .html)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="15" y="35" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_fn" value="⚙️ function / handler / process step" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="255" y="35" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_import" value="📦 import / module entry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fde68a;strokeColor=#f59e0b;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="495" y="35" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_parser" value="🔌 public export from parser.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#6366f1;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="735" y="35" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_storage" value="💾 live / append-only / backup storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="975" y="35" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_audit" value="🪦 append-only audit log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fed7aa;strokeColor=#ea580c;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="1215" y="35" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_snap" value="🗂️ rotating snapshot (cap=200)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bae6fd;strokeColor=#0284c7;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="15" y="85" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_legacy" value="📜 legacy / human-authored doc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#64748b;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="255" y="85" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_solid" value="→ solid arrow: data flow / call" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="495" y="85" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashed" value="⇢ dashed arrow: renders / derived view" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="735" y="85" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashedimp" value="┄ dashed edge: import dependency" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="975" y="85" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="summary_text" value="Summary:  3 runtime code files (run.sh, job_tracker_server.py, parser.py) · 1 SPA (index.html) · 1 mutable markdown DB (job_applications.md) · 1 scrape feed (linkedin_jobs_montreal_southshore.md) · 2 append-only audit logs · 1 rotating snapshot folder (capped at 200) · 1 error log · 2 historical docs (improvements.md, architecture.md) · 7 legacy backup .py copies that are not loaded at runtime." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbeb;strokeColor=#facc15;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="legend">
+          <mxGeometry x="15" y="130" width="1570" height="35" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

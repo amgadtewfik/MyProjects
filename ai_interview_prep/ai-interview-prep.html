@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>AI Interview + Coding Exercise Prep — TypeScript Full-Stack / Microservices / System Design / API / Cloud
+  </title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #161925;
+      --panel2: #1c2030;
+      --border: #2a2f42;
+      --text: #e6e8ef;
+      --muted: #9aa1b5;
+      --accent: #7c9eff;
+      --accent2: #ffb86b;
+      --code: #0b0d14;
+      --green: #7ee0a8;
+      --red: #ff8a8a;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      line-height: 1.55
+    }
+
+    header {
+      padding: 32px 5vw 16px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(15, 17, 23, .95);
+      backdrop-filter: blur(6px);
+      z-index: 10
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.6rem
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted)
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    nav a {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: .85rem
+    }
+
+    nav a:hover {
+      border-color: var(--accent)
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 5vw 80px
+    }
+
+    section {
+      margin-bottom: 56px
+    }
+
+    section h2 {
+      font-size: 1.35rem;
+      border-left: 4px solid var(--accent);
+      padding-left: 12px;
+      margin-bottom: 6px
+    }
+
+    section>p.intro {
+      color: var(--muted);
+      margin-top: 0
+    }
+
+    .roi-badge {
+      display: inline-block;
+      font-size: .7rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(126, 224, 168, .12);
+      color: var(--green);
+      border: 1px solid rgba(126, 224, 168, .35);
+      margin-left: 10px;
+      vertical-align: middle
+    }
+
+    .q {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 14px 0;
+      overflow: hidden
+    }
+
+    .q summary {
+      cursor: pointer;
+      padding: 14px 18px;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px
+    }
+
+    .q summary::-webkit-details-marker {
+      display: none
+    }
+
+    .q summary::after {
+      content: "+";
+      color: var(--accent);
+      font-size: 1.2rem
+    }
+
+    .q[open] summary::after {
+      content: "−"
+    }
+
+    .q .body {
+      padding: 0 18px 18px;
+      color: #d3d7e6
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: .62rem;
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(255, 184, 107, .10);
+      color: var(--accent2);
+      margin-left: 8px;
+      border: 1px solid rgba(255, 184, 107, .35);
+      vertical-align: middle;
+      white-space: nowrap
+    }
+
+    .tag::before {
+      content: "";
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent2);
+      opacity: .85
+    }
+
+    pre {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font-size: .85rem
+    }
+
+    code {
+      font-family: SFMono-Regular, Consolas, Menlo, monospace
+    }
+
+    .body code:not(pre code) {
+      background: var(--code);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: .85rem
+    }
+
+    .exercise {
+      background: var(--panel2);
+      border: 1px dashed var(--accent);
+      border-radius: 10px;
+      padding: 18px;
+      margin: 16px 0
+    }
+
+    .exercise h4 {
+      margin: 0 0 8px;
+      color: var(--accent2)
+    }
+
+    .exercise ul {
+      margin: 8px 0
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 14px 0;
+      font-size: .9rem
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left
+    }
+
+    th {
+      background: var(--panel2)
+    }
+
+    .toc-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin-bottom: 40px
+    }
+
+    .toc-panel ol {
+      margin: 0;
+      padding-left: 20px
+    }
+
+    .toc-panel a {
+      color: var(--accent);
+      text-decoration: none
+    }
+
+    .badge-hint {
+      color: var(--muted);
+      font-size: .8rem
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 20px;
+      font-size: .85rem;
+      border-top: 1px solid var(--border)
+    }
+
+    .answer-box {
+      margin: 10px 0 16px
+    }
+
+    .answer-box label {
+      display: block;
+      font-size: .75rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .03em
+    }
+
+    .answer-box textarea {
+      width: 100%;
+      min-height: 90px;
+      background: var(--code);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: .9rem;
+      resize: vertical
+    }
+
+    .answer-box textarea:focus {
+      outline: none;
+      border-color: var(--accent)
+    }
+
+    .answer-box .saved-hint {
+      font-size: .72rem;
+      color: var(--green);
+      margin-left: 8px;
+      opacity: 0;
+      transition: opacity .3s
+    }
+
+    .answer-box .saved-hint.show {
+      opacity: 1
+    }
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .eval-btn {
+      background: var(--accent);
+      color: #0f1117;
+      border: 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px
+    }
+
+    .eval-btn:hover {
+      filter: brightness(1.1)
+    }
+
+    .eval-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .eval-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px
+    }
+
+    .eval-reset-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: .78rem;
+      cursor: pointer
+    }
+
+    .eval-reset-btn:hover {
+      color: var(--text);
+      border-color: var(--accent)
+    }
+
+    .eval-saved-tag {
+      font-size: .7rem;
+      color: var(--green);
+      margin-left: 4px;
+      opacity: 0;
+      transition: opacity .3s
+    }
+
+    .eval-saved-tag.show {
+      opacity: 1
+    }
+
+    .eval-result {
+      margin-top: 10px;
+      padding: 12px;
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: .85rem;
+      display: none
+    }
+
+    .eval-result.show {
+      display: block
+    }
+
+    .eval-score {
+      display: inline-block;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-right: 10px
+    }
+
+    .eval-score.s-hi {
+      background: rgba(126, 224, 168, .18);
+      color: var(--green);
+      border: 1px solid rgba(126, 224, 168, .4)
+    }
+
+    .eval-score.s-md {
+      background: rgba(255, 184, 107, .18);
+      color: var(--accent2);
+      border: 1px solid rgba(255, 184, 107, .4)
+    }
+
+    .eval-score.s-lo {
+      background: rgba(255, 138, 138, .18);
+      color: var(--red);
+      border: 1px solid rgba(255, 138, 138, .4)
+    }
+
+    .eval-result h5 {
+      margin: 8px 0 4px;
+      font-size: .85rem;
+      color: var(--accent)
+    }
+
+    .eval-result ul {
+      margin: 4px 0 4px 18px;
+      padding: 0
+    }
+
+    .eval-result li {
+      margin: 2px 0
+    }
+
+    .eval-error {
+      color: var(--red);
+      font-size: .8rem;
+      margin-top: 6px
+    }
+
+    .eval-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .eval-model-pick {
+      display: inline-block;
+      margin-left: 6px;
+      font-size: .7rem;
+      color: var(--muted)
+    }
+
+    .eval-model-pick select {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: .7rem;
+      padding: 2px 4px
+    }
+
+    .eval-toggle {
+      background: transparent;
+      color: var(--accent);
+      border: 0;
+      padding: 4px 0 0;
+      font-size: .78rem;
+      cursor: pointer;
+      text-decoration: underline
+    }
+
+    .eval-toggle:hover {
+      filter: brightness(1.15)
+    }
+
+    /* When a question or exercise is .answer-collapsed, hide everything below the .answer-box */
+    .q.answer-collapsed>.body> :not(.answer-box),
+    .q.answer-collapsed>.body> :not(.answer-box) *,
+    .exercise.answer-collapsed> :not(.answer-box),
+    .exercise.answer-collapsed> :not(.answer-box) * {
+      display: none !important
+    }
+
+    .q.answer-collapsed>.body,
+    .exercise.answer-collapsed {
+      padding-bottom: 0
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>AI Interview + Coding Exercise Prep</h1>
+    <p>Ordered by interview ROI — highest-weight, hardest-to-fake topics first · TypeScript Full-Stack (Node.js + React)
+      · Microservices · Distributed Systems &amp; System Design · REST API &amp; Backend Engineering · Cloud &amp; CI/CD
+    </p>
+    <nav>
+      <a href="#sysdesign">1. System Design</a>
+      <a href="#micro">2. Microservices</a>
+      <a href="#api">3. API Design</a>
+      <a href="#ts">4. TypeScript Full-Stack</a>
+      <a href="#cloud">5. Cloud &amp; CI/CD</a>
+      <a href="#coding">6. Coding Exercises</a>
+      <a href="#behavioral">7. Behavioral / Wrap-up</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <div class="toc-panel">
+      <strong>How to use this:</strong> Sections are ordered by ROI — System Design and Microservices are hardest to
+      bluff and weighted heaviest in real loops, so tackle them first; TypeScript and Cloud/CI-CD are more recall-based
+      and cram-able later. Each section has commonly-asked interview questions (click to expand model answers/talking
+      points) followed by standalone coding exercises with starter prompts and collapsed model solutions. Aim for ~45–60
+      min per focus area in a real loop, or use the full set as a take-home.
+    </div>
+
+    <!-- ============ SYSTEM DESIGN (highest ROI) ============ -->
+    <section id="sysdesign">
+      <h2>1. Distributed Systems &amp; System Design <span class="roi-badge">Highest ROI — practice first</span></h2>
+      <p class="intro">Scalability trade-offs, consistency models, and the standard "design X" interview format.</p>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.1</span> Explain CAP theorem in
+          your own words with a concrete example of choosing CP vs AP.<span class="tag">Theory</span></summary>
+        <div class="body">
+          <p>Under a network partition, a distributed system must choose between Consistency (every read sees the latest
+            write) and Availability (every request gets a response, possibly stale). CP example: a distributed lock
+            service (etcd/ZooKeeper) — must refuse requests rather than risk two nodes believing they hold the same
+            lock. AP example: a shopping cart service — better to let users keep adding items (possibly reconciled
+            later) than to reject requests during a partition.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.2</span> Strong consistency vs
+          eventual consistency vs read-your-writes — when does each matter?<span class="tag">Consistency Models</span>
+        </summary>
+        <div class="body">
+          <p>Strong: every read reflects the most recent write (needed for bank balances, inventory counts near zero).
+            Eventual: replicas converge over time, acceptable for things like social media like-counts or search index
+            updates. Read-your-writes: a middle ground often needed for good UX — a user should immediately see their
+            own comment/post even if other users see it with a delay (achieved via session stickiness or routing reads
+            to the primary shortly after a write).</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.3</span> How do you shard a
+          database, and what are the common sharding key strategies?<span class="tag">Scalability</span></summary>
+        <div class="body">
+          <p>Range-based (good for range queries, risk of hot shards for sequential keys like timestamps), hash-based
+            (even distribution, poor range queries), and directory-based (a lookup service maps keys to shards, flexible
+            but adds a dependency/SPOF risk unless replicated). Discuss re-sharding pain (consistent hashing minimizes
+            data movement when adding/removing nodes) and cross-shard queries/joins as a major downside requiring
+            denormalization or a separate analytics store.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.4</span> Design a URL shortener
+          (classic prompt) — outline your approach.<span class="tag">System Design Prompt</span></summary>
+        <div class="body">
+          <p>Expected structure: (1) clarify requirements &amp; scale — reads:writes ratio (typically read-heavy),
+            custom aliases, expiry, analytics; (2) API design — <code>POST /urls</code>, <code>GET /{code}</code>; (3)
+            ID generation — base62 counter, or hash+collision-check, discuss distributed unique ID generation
+            (Snowflake-style) if multiple write nodes; (4) storage — key-value store (DynamoDB/Redis) fits access
+            pattern well; (5) caching layer for hot redirects; (6) scaling reads via CDN/edge caching for redirects
+            since they're idempotent and cacheable.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.5</span> Design a rate limiter for
+          a public API used by many services (like this file's exercise, but at system scale).<span class="tag">System
+            Design Prompt</span></summary>
+        <div class="body">
+          <p>Discuss algorithms: token bucket (allows bursts, smooth refill), sliding window log (accurate,
+            memory-heavy), sliding window counter (good approximation, cheap). At scale, per-instance in-memory counters
+            don't work across a fleet — need a shared store (Redis) with atomic increment+expire (Lua script or
+            <code>INCR</code>+<code>EXPIRE</code>), or a dedicated rate-limiting service at the API Gateway layer. Cover
+            what happens under Redis outage (fail-open vs fail-closed trade-off).</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.6</span> How would you design a
+          notification system that fans out to email, SMS, and push, handling millions of users?<span class="tag">System
+            Design Prompt</span></summary>
+        <div class="body">
+          <p>Producer publishes a "NotificationRequested" event to a queue/stream; a fan-out worker or per-channel
+            consumer groups pick it up. Each channel (email/SMS/push) is its own consumer with its own retry/backoff and
+            third-party rate limits (SES, Twilio, FCM/APNs). Discuss deduplication, user preference/opt-out checks
+            before sending, and prioritization queues (transactional vs marketing) so critical notifications aren't
+            delayed by bulk sends.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.7</span> What is consistent
+          hashing and why is it used over simple modulo hashing?<span class="tag">Theory</span></summary>
+        <div class="body">
+          <p>Simple modulo (<code>hash(key) % N</code>) re-maps almost every key when N (node count) changes, causing
+            massive cache/data churn on scale up/down. Consistent hashing places nodes and keys on a hash ring; each key
+            belongs to the next node clockwise. Adding/removing a node only remaps the keys between it and its neighbor,
+            minimizing redistribution. Virtual nodes address uneven load distribution across a small number of physical
+            nodes.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">1.8</span> Explain leader election
+          and how it's used in distributed systems (e.g., Raft/etcd/ZooKeeper).<span class="tag">Consensus</span>
+        </summary>
+        <div class="body">
+          <p>In systems needing a single coordinator (e.g., a primary DB node, a job scheduler), nodes run a consensus
+            algorithm (Raft, Paxos) to agree on one leader, tolerating node failures. Raft in brief: nodes are
+            Follower/Candidate/Leader; a Candidate requests votes; majority quorum wins leadership for a term;
+            heartbeats maintain leadership; failure to hear from leader triggers a new election. This underlies
+            etcd/Consul, which many microservices systems use for distributed locks and config.</p>
+        </div>
+      </details>
+
+      <div class="exercise">
+        <h4>Design Exercise 1.1 — Design a Distributed Job Scheduler</h4>
+        <ul>
+          <li>Requirements: schedule millions of one-off and recurring jobs; at-least-once execution; horizontal
+            scalability; no single point of failure.</li>
+          <li>Deliver: high-level architecture diagram (verbal/whiteboard), data model for jobs, how workers claim jobs
+            without double-execution (leasing/locking), and how you'd handle a worker crashing mid-job.</li>
+        </ul>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution / Approach<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <p><strong>Data model:</strong> a <code>jobs</code> table with columns like
+              <code>id, run_at, cron_expr (nullable), status (pending/claimed/running/done/failed), claimed_by, claimed_at, lease_expires_at, attempts</code>.
+              Recurring jobs store their cron expression and get a new row (or a computed next <code>run_at</code>)
+              generated after each run.</p>
+            <p><strong>Claiming without double-execution:</strong> workers poll for jobs where
+              <code>run_at &lt;= now() AND status = 'pending'</code> (or
+              <code>status='claimed' AND lease_expires_at &lt; now()</code> for expired leases), and claim atomically
+              with a conditional update:
+              <code>UPDATE jobs SET status='claimed', claimed_by=$workerId, lease_expires_at=now()+lease_duration WHERE id=$id AND status='pending' RETURNING *</code>.
+              The <code>WHERE status='pending'</code> guard means only one worker's UPDATE affects a row — this is the
+              same leasing pattern used by systems like Sidekiq/Celery/SQS visibility timeouts.</p>
+            <p><strong>Worker crash mid-job:</strong> the lease (<code>lease_expires_at</code>) means if a worker dies
+              without marking the job <code>done</code>, another worker eventually sees the expired lease and reclaims
+              it — this naturally gives at-least-once execution. The job handler itself must be idempotent (or use a
+              completion/dedup check) since it may run more than once.</p>
+            <p><strong>Scale &amp; no SPOF:</strong> the scheduler is just workers polling a shared,
+              horizontally-scalable data store (Postgres with row-level locking, or a purpose-built store like DynamoDB)
+              — there's no single "scheduler brain" that's a single point of failure. Discuss sharding the jobs table by
+              <code>run_at</code> bucket or job type if polling contention becomes a bottleneck at very high volume, and
+              using <code>SKIP LOCKED</code> (Postgres) to let many workers poll concurrently without blocking each
+              other.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <h4>Design Exercise 1.2 — Design a Real-Time Collaborative Document Editor's Backend</h4>
+        <ul>
+          <li>Cover: conflict resolution (OT vs CRDTs), how edits propagate (WebSocket fan-out), persistence strategy
+            (snapshot + operation log), and horizontal scaling of the real-time layer (sticky sessions vs pub/sub
+            backplane like Redis).</li>
+        </ul>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution / Approach<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <p><strong>Conflict resolution — OT vs CRDTs:</strong> Operational Transformation (used by early Google
+              Docs) transforms each incoming operation against concurrent operations so they can be applied in any order
+              and converge, but requires a central server to sequence/transform operations correctly and is notoriously
+              hard to implement correctly for rich document structures. CRDTs (e.g., Yjs, Automerge) design the data
+              structure itself so concurrent updates merge deterministically without a central arbiter — simpler to
+              reason about and works better offline-first, at the cost of some memory overhead for tombstones/metadata.
+              Most new systems (Figma-style, modern editors) favor CRDTs.</p>
+            <p><strong>Edit propagation:</strong> each client holds a WebSocket connection to an edit server; local
+              edits apply optimistically to the local CRDT/OT doc, then broadcast to the server, which relays to all
+              other connected clients editing the same document (a "room"). For horizontal scaling of the WebSocket
+              layer, sticky sessions alone don't work once you have many server instances — use a pub/sub backplane
+              (Redis Pub/Sub, or a message broker) so a client connected to server A gets updates originating from a
+              client on server B.</p>
+            <p><strong>Persistence:</strong> store periodic snapshots of the full document state plus an append-only
+              operation log since the last snapshot (similar to event sourcing) — this lets you reconstruct current
+              state fast (snapshot + replay recent ops) without replaying the entire history, and supports undo/version
+              history features.</p>
+            <p><strong>Scaling further:</strong> partition documents/rooms across server instances (consistent hashing
+              on document ID) so a given document's traffic is handled by one primary instance at a time, avoiding
+              needing every instance to relay every edit for every document.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ MICROSERVICES ============ -->
+    <section id="micro">
+      <h2>2. Microservices <span class="roi-badge">High ROI — same patterns as System Design</span></h2>
+      <p class="intro">Service boundaries, communication patterns, data consistency, and failure isolation.</p>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.1</span> How do you decide service
+          boundaries in a microservices architecture?<span class="tag">Design</span></summary>
+        <div class="body">
+          <p>Align boundaries with business capabilities / bounded contexts (Domain-Driven Design), not technical
+            layers. Each service should own its data and be independently deployable. Signals a boundary is wrong:
+            services always deploy together, high chattiness between two services, shared database tables across teams.
+            Discuss trade-off: too fine-grained → distributed monolith with network overhead and orchestration
+            complexity.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.2</span> Synchronous (REST/gRPC)
+          vs asynchronous (message queue/event) communication between services — when to use each?<span
+            class="tag">Communication</span></summary>
+        <div class="body">
+          <p>Sync: simple request/response, need immediate result, low fan-out (e.g., checking inventory before
+            confirming an order). Downsides: tight coupling to availability, cascading failures, latency stacking. Async
+            (Kafka/RabbitMQ/SNS-SQS): decouples producer/consumer lifecycles, natural buffering under load, supports
+            event-driven architectures and eventual consistency, but adds complexity (ordering, idempotency, debugging,
+            eventual visibility). Real systems mix both: sync for user-facing reads, async for cross-service side
+            effects.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.3</span> What is the Saga pattern
+          and why is it needed in microservices?<span class="tag">Data Consistency</span></summary>
+        <div class="body">
+          <p>Since each microservice has its own database, distributed ACID transactions (2PC) don't scale well across
+            services. A Saga breaks a business transaction into a sequence of local transactions, each publishing an
+            event/command that triggers the next step. If a step fails, compensating transactions undo prior steps. Two
+            coordination styles: choreography (services react to each other's events, no central brain) vs orchestration
+            (a central saga coordinator/orchestrator directs each step, easier to reason about but a new dependency).
+          </p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.4</span> Explain the Circuit
+          Breaker pattern and where it fits in a microservices call chain.<span class="tag">Resilience</span></summary>
+        <div class="body">
+          <p>Wraps calls to a downstream dependency; tracks failure rate. States: Closed (calls pass through normally) →
+            Open (after threshold of failures, calls fail fast without hitting the downstream, giving it time to
+            recover) → Half-Open (allow a trial request to test recovery). Prevents cascading failure/thread exhaustion
+            when a downstream service is degraded. Pair with timeouts, retries with backoff+jitter, and bulkheads
+            (isolating resource pools per dependency).</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.5</span> How do you handle service
+          discovery and configuration in a microservices deployment?<span class="tag">Infrastructure</span></summary>
+        <div class="body">
+          <p>Options: client-side discovery (services query a registry like Consul/Eureka directly), server-side
+            discovery (a load balancer/service mesh like Kubernetes Services + kube-proxy, or Istio/Linkerd, handles
+            routing transparently). In Kubernetes-native setups, DNS-based service discovery + a sidecar mesh proxy is
+            now the common default over hand-rolled registries. Config: externalize via env vars, ConfigMaps/Secrets, or
+            a centralized config service, never bake environment-specific config into images.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.6</span> What is the API Gateway
+          pattern, and what cross-cutting concerns does it handle?<span class="tag">Architecture</span></summary>
+        <div class="body">
+          <p>A single entry point that routes external requests to internal services, and centralizes cross-cutting
+            concerns: authentication/authorization, rate limiting, request/response transformation, aggregation
+            (BFF-style composing multiple service calls into one response), TLS termination, and observability.
+            Trade-off: risk of becoming a bottleneck or "God object" if business logic leaks into it — keep it thin.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">2.7</span> How do you maintain data
+          consistency and avoid duplicate processing when consuming events at-least-once?<span
+            class="tag">Reliability</span></summary>
+        <div class="body">
+          <p>Most brokers (Kafka, SQS) provide at-least-once delivery, so consumers must be idempotent: dedupe using a
+            unique event/message ID stored with the processing result (idempotency key table), or design operations to
+            be naturally idempotent (upserts vs increments). Also discuss the outbox pattern: writing the DB change and
+            the "event to publish" in the same local transaction, then a relay process publishes from the outbox table,
+            avoiding the dual-write problem.</p>
+        </div>
+      </details>
+
+      <div class="exercise">
+        <h4>Coding Exercise 2.1 — Idempotent Payment Consumer</h4>
+        <p>Write a Node.js consumer function that processes <code>PaymentCompleted</code> events from a queue. Given the
+          broker delivers at-least-once, implement idempotency so processing the same event twice never double-credits
+          an account. Use an in-memory store (Map) to simulate a DB idempotency table for the exercise, but design the
+          interface so it could be swapped for Postgres/Redis.</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>interface PaymentCompletedEvent {
+  eventId: string;      // unique per event, provided by the broker/producer
+  accountId: string;
+  amount: number;
+}
+
+interface IdempotencyStore {
+  hasProcessed(eventId: string): Promise&lt;boolean&gt;;
+  markProcessed(eventId: string): Promise&lt;void&gt;;
+}
+
+class InMemoryIdempotencyStore implements IdempotencyStore {
+  private seen = new Set&lt;string&gt;();
+  async hasProcessed(eventId: string) { return this.seen.has(eventId); }
+  async markProcessed(eventId: string) { this.seen.add(eventId); }
+}
+
+async function handlePaymentCompleted(
+  event: PaymentCompletedEvent,
+  store: IdempotencyStore,
+  creditAccount: (accountId: string, amount: number) =&gt; Promise&lt;void&gt;
+) {
+  if (await store.hasProcessed(event.eventId)) {
+    // Already handled this exact event — broker redelivered it. No-op.
+    return;
+  }
+
+  await creditAccount(event.accountId, event.amount);
+  await store.markProcessed(event.eventId);
+}</code></pre>
+            <p><strong>Why this works:</strong> the dedupe check is keyed on the event's own unique ID (not on
+              account/amount), which is the correct key for at-least-once delivery — the broker may redeliver the exact
+              same event, and we must recognize "I've already applied this one" regardless of how many times it arrives.
+            </p>
+            <p><strong>The subtlety interviewers probe for:</strong> in a real system, the <code>hasProcessed</code>
+              check, <code>creditAccount</code>, and <code>markProcessed</code> need to happen atomically (e.g., in one
+              DB transaction, or via a unique constraint on <code>eventId</code> in the same table as the balance
+              update) — otherwise a crash between crediting the account and marking it processed re-triggers a
+              double-credit on redelivery. This is the classic argument for combining the idempotency key with the
+              business write in a single transaction rather than two separate stores.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <h4>Coding Exercise 2.2 — Circuit Breaker Implementation</h4>
+        <p>Implement a minimal circuit breaker class (TypeScript) wrapping an async function, with configurable failure
+          threshold, reset timeout, and half-open trial. No external libraries (no opossum) — write the state machine
+          yourself. Include unit tests for the Closed→Open and Open→Half-Open→Closed transitions.</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>type State = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+class CircuitBreaker&lt;T&gt; {
+  private state: State = 'CLOSED';
+  private failureCount = 0;
+  private nextAttempt = 0;
+
+  constructor(
+    private fn: (...args: any[]) =&gt; Promise&lt;T&gt;,
+    private failureThreshold = 3,
+    private resetTimeoutMs = 5000
+  ) {}
+
+  async call(...args: any[]): Promise&lt;T&gt; {
+    if (this.state === 'OPEN') {
+      if (Date.now() &lt; this.nextAttempt) {
+        throw new Error('Circuit is OPEN — failing fast');
+      }
+      this.state = 'HALF_OPEN';
+    }
+
+    try {
+      const result = await this.fn(...args);
+      this.onSuccess();
+      return result;
+    } catch (err) {
+      this.onFailure();
+      throw err;
+    }
+  }
+
+  private onSuccess() {
+    this.failureCount = 0;
+    this.state = 'CLOSED';
+  }
+
+  private onFailure() {
+    this.failureCount++;
+    if (this.state === 'HALF_OPEN' || this.failureCount &gt;= this.failureThreshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.resetTimeoutMs;
+    }
+  }
+}</code></pre>
+            <p><strong>Why this works:</strong> the breaker fails fast while <code>OPEN</code> (no call to
+              <code>fn</code> at all), avoiding piling up slow/timed-out calls against an already-struggling dependency.
+              Once <code>resetTimeoutMs</code> elapses, exactly one trial call is allowed through in
+              <code>HALF_OPEN</code> — a single failure there immediately re-opens the circuit (no need to hit the full
+              threshold again), while a success resets fully to <code>CLOSED</code>.</p>
+            <p><strong>Test cases to write:</strong> (1) N consecutive failures flips CLOSED→OPEN; (2) calling during
+              OPEN before the timeout throws immediately without invoking <code>fn</code>; (3) after the timeout, the
+              next call is allowed through (HALF_OPEN) and a success returns to CLOSED; (4) a failure during HALF_OPEN
+              goes straight back to OPEN and resets the timer.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ API DESIGN ============ -->
+    <section id="api">
+      <h2>3. API Design &amp; Backend Engineering (REST) <span class="roi-badge">Mostly judgment — fast to lock
+          in</span></h2>
+      <p class="intro">Resource modeling, versioning, error handling, and pragmatic REST discipline.</p>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.1</span> What makes an API
+          "RESTful"? Which constraints do most real-world APIs relax?<span class="tag">Fundamentals</span></summary>
+        <div class="body">
+          <p>Roy Fielding's constraints: client-server, statelessness, cacheability, uniform interface, layered system,
+            and (optionally) code-on-demand. In practice, most "REST APIs" skip HATEOAS (hypermedia-driven
+            discoverability) and just use resource-oriented URLs + HTTP verbs + JSON — which is really
+            "REST-ish"/RPC-over-HTTP. Interviewers want you to recognize this distinction, not just recite the term.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.2</span> How do you design
+          resource URLs and choose HTTP verbs/status codes correctly?<span class="tag">REST Conventions</span></summary>
+        <div class="body">
+          <p>Nouns not verbs (<code>/orders/:id</code>, not <code>/getOrder</code>). Verbs: GET (safe/idempotent), POST
+            (create, non-idempotent), PUT (full replace, idempotent), PATCH (partial update), DELETE (idempotent).
+            Status codes: 200 (OK), 201 (Created, with Location header), 204 (No Content), 400 (bad request/validation),
+            401 (unauthenticated), 403 (unauthorized), 404 (not found), 409 (conflict, e.g., optimistic lock failure),
+            422 (semantically invalid), 429 (rate limited), 500/503 (server/unavailable).</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.3</span> How would you design API
+          versioning, and what are the trade-offs between approaches?<span class="tag">Versioning</span></summary>
+        <div class="body">
+          <p>URI versioning (<code>/v1/orders</code>) — simple, cacheable, but clutters URLs and encourages big-bang
+            breaking versions. Header/media-type versioning (<code>Accept: application/vnd.api.v2+json</code>) — cleaner
+            URLs, harder to test manually/discover. Additive/non-breaking evolution (adding optional fields, never
+            removing/renaming) avoids versioning entirely for a long time and is generally preferred until a genuinely
+            breaking change is unavoidable.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.4</span> Design pagination for a
+          large collection endpoint — offset vs cursor-based, trade-offs?<span class="tag">Pagination</span></summary>
+        <div class="body">
+          <p>Offset/limit (<code>?page=3&amp;limit=20</code>): simple, allows jumping to arbitrary pages, but breaks
+            under concurrent inserts/deletes (items shift between pages) and gets slow on large offsets (DB still
+            scans/skips rows). Cursor-based (<code>?after=&lt;opaque_id&gt;</code>): stable under mutation, efficient
+            (indexed seek), but no random page access. Recommend cursor-based for high-write, high-scale collections
+            (feeds, logs); offset is fine for small, relatively static admin tables.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.5</span> How do you design a
+          consistent error response format across an API?<span class="tag">Error Handling</span></summary>
+        <div class="body">
+          <p>Standardize a shape like <code>{ error: { code, message, details?, traceId } }</code> across all endpoints,
+            distinct from the success payload shape. Use machine-readable <code>code</code> (e.g.,
+            <code>VALIDATION_FAILED</code>) so clients can branch logic without parsing message strings (which may
+            change/be localized). Include a correlation/trace ID for support/debugging across microservices. Never leak
+            stack traces or internal implementation details to clients in production.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.6</span> How do you handle
+          authentication/authorization in a REST API — sessions vs JWT?<span class="tag">Security</span></summary>
+        <div class="body">
+          <p>Sessions: server-stored state (Redis), easy revocation, requires sticky sessions or shared store across
+            instances. JWT: stateless, self-contained, scales horizontally without shared session storage, but harder to
+            revoke before expiry (mitigations: short expiry + refresh tokens, or a denylist). For microservices, JWTs
+            (often signed by a central auth service, verified by each service without a round trip) are common; discuss
+            token refresh flow and where to store tokens on the client (httpOnly cookies vs localStorage — XSS/CSRF
+            trade-offs).</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.7</span> What is idempotency in
+          the context of REST APIs, and how do you support idempotent POST requests (e.g., for payments)?<span
+            class="tag">Reliability</span></summary>
+        <div class="body">
+          <p>GET/PUT/DELETE are idempotent by spec; POST is not, but clients need idempotent "create" semantics to
+            safely retry after a timeout (did the payment actually go through?). Common solution: client generates an
+            <code>Idempotency-Key</code> header; server stores the key with the result of the first successful
+            processing, and returns the cached result for duplicate keys instead of reprocessing.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">3.8</span> How would you approach
+          rate limiting and throttling for API consumers with different tiers (free vs paid)?<span class="tag">API
+            Governance</span></summary>
+        <div class="body">
+          <p>Attach limits to API keys/accounts rather than IPs (multiple users behind NAT/shared IP). Return
+            <code>429</code> with <code>Retry-After</code> and rate-limit headers
+            (<code>X-RateLimit-Limit/Remaining/Reset</code>) so clients can back off intelligently. Tiering usually
+            enforced at the gateway layer, with limits configurable per plan stored alongside account/billing data.</p>
+        </div>
+      </details>
+
+      <div class="exercise">
+        <h4>Coding Exercise 3.1 — Build a REST CRUD API with Validation</h4>
+        <p>Using Node.js + Express (or Fastify) and TypeScript, implement <code>/tasks</code> resource endpoints: list
+          (paginated), get by id, create, update, delete. Requirements:</p>
+        <ul>
+          <li>Input validation with clear 400 responses (zod or manual).</li>
+          <li>Consistent error envelope across all failure modes.</li>
+          <li>Idempotency-Key support on <code>POST /tasks</code>.</li>
+          <li>In-memory store is fine; focus on correctness and API contract, not persistence.</li>
+        </ul>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>import express from 'express';
+import { z } from 'zod';
+import { randomUUID } from 'crypto';
+
+const app = express();
+app.use(express.json());
+
+interface Task { id: string; title: string; done: boolean; }
+const tasks = new Map&lt;string, Task&gt;();
+const idempotencyResults = new Map&lt;string, Task&gt;();
+
+const TaskInput = z.object({ title: z.string().min(1), done: z.boolean().optional() });
+
+function errorResponse(code: string, message: string) {
+  return { error: { code, message } };
+}
+
+app.get('/tasks', (req, res) =&gt; {
+  const limit = Number(req.query.limit ?? 20);
+  const after = req.query.after as string | undefined;
+  const all = Array.from(tasks.values());
+  const startIdx = after ? all.findIndex(t =&gt; t.id === after) + 1 : 0;
+  const page = all.slice(startIdx, startIdx + limit);
+  res.json({ data: page, nextCursor: page.length ? page[page.length - 1].id : null });
+});
+
+app.get('/tasks/:id', (req, res) =&gt; {
+  const task = tasks.get(req.params.id);
+  if (!task) return res.status(404).json(errorResponse('NOT_FOUND', 'Task not found'));
+  res.json({ data: task });
+});
+
+app.post('/tasks', (req, res) =&gt; {
+  const idKey = req.header('Idempotency-Key');
+  if (idKey &amp;&amp; idempotencyResults.has(idKey)) {
+    return res.status(201).json({ data: idempotencyResults.get(idKey) });
+  }
+
+  const parsed = TaskInput.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json(errorResponse('VALIDATION_FAILED', parsed.error.message));
+  }
+
+  const task: Task = { id: randomUUID(), title: parsed.data.title, done: parsed.data.done ?? false };
+  tasks.set(task.id, task);
+  if (idKey) idempotencyResults.set(idKey, task);
+
+  res.status(201).location(`/tasks/${task.id}`).json({ data: task });
+});
+
+app.patch('/tasks/:id', (req, res) =&gt; {
+  const task = tasks.get(req.params.id);
+  if (!task) return res.status(404).json(errorResponse('NOT_FOUND', 'Task not found'));
+  const parsed = TaskInput.partial().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json(errorResponse('VALIDATION_FAILED', parsed.error.message));
+  Object.assign(task, parsed.data);
+  res.json({ data: task });
+});
+
+app.delete('/tasks/:id', (req, res) =&gt; {
+  if (!tasks.has(req.params.id)) return res.status(404).json(errorResponse('NOT_FOUND', 'Task not found'));
+  tasks.delete(req.params.id);
+  res.status(204).send();
+});</code></pre>
+            <p><strong>Why this works:</strong> validation happens via a schema (<code>zod</code>) rather than scattered
+              manual checks, and every failure path returns the same <code>{ error: { code, message } }</code> envelope
+              so clients branch on <code>code</code> reliably. The <code>Idempotency-Key</code> header is checked
+              <em>before</em> validation/creation, so a retried request with the same key returns the original result
+              instead of creating a duplicate task or re-validating.</p>
+            <p><strong>What interviewers look for beyond the happy path:</strong> correct status codes (201 + Location
+              on create, 204 on delete, 404 before 400 on update when the resource doesn't exist), and whether you
+              thought about concurrent requests hitting the same idempotency key at the same time (a real system would
+              need a lock or a unique DB constraint, not just a plain Map check).</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <h4>Coding Exercise 3.2 — Cursor Pagination</h4>
+        <p>Given an array of 100k timestamped log objects (simulate in memory or SQLite), implement a
+          <code>GET /logs?after=&lt;cursor&gt;&amp;limit=50</code> endpoint using cursor-based pagination that remains
+          correct even if new logs are inserted between requests.</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>interface LogEntry { id: string; createdAt: number; message: string; }
+
+// Cursor encodes (createdAt, id) so ordering is stable even with duplicate timestamps
+function encodeCursor(entry: LogEntry): string {
+  return Buffer.from(`${entry.createdAt}:${entry.id}`).toString('base64');
+}
+function decodeCursor(cursor: string): { createdAt: number; id: string } {
+  const [createdAt, id] = Buffer.from(cursor, 'base64').toString().split(':');
+  return { createdAt: Number(createdAt), id };
+}
+
+app.get('/logs', (req, res) =&gt; {
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  const after = req.query.after as string | undefined;
+
+  let filtered = allLogs; // assume sorted by (createdAt ASC, id ASC)
+  if (after) {
+    const cursor = decodeCursor(after);
+    filtered = allLogs.filter(l =&gt;
+      l.createdAt &gt; cursor.createdAt ||
+      (l.createdAt === cursor.createdAt &amp;&amp; l.id &gt; cursor.id)
+    );
+  }
+
+  const page = filtered.slice(0, limit);
+  const nextCursor = page.length === limit ? encodeCursor(page[page.length - 1]) : null;
+
+  res.json({ data: page, nextCursor });
+});</code></pre>
+            <p><strong>Why this works:</strong> the cursor isn't a page number — it's an opaque pointer to "the last row
+              I saw" encoded as <code>(createdAt, id)</code>. A composite key is used (not just the timestamp) because
+              timestamps can collide; the tiebreaker <code>id</code> guarantees a strict total order so no row is ever
+              skipped or repeated even if two logs share a timestamp. Because the query is always "give me everything
+              after this exact position" rather than "skip N rows," inserting new rows anywhere in the dataset never
+              shifts what page 2 means — unlike offset pagination, which breaks when rows shift between requests.</p>
+            <p><strong>Production note:</strong> in a real DB this maps directly to a keyset/seek query:
+              <code>WHERE (created_at, id) &gt; ($1, $2) ORDER BY created_at, id LIMIT $3</code>, which uses a composite
+              index efficiently instead of scanning and discarding <code>OFFSET</code> rows.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ TYPESCRIPT FULL-STACK ============ -->
+    <section id="ts">
+      <h2>4. TypeScript Full-Stack Development (Node.js + React) <span class="roi-badge">Code it hands-on</span></h2>
+      <p class="intro">Type system depth, async patterns, React rendering model, state management, and Node runtime
+        internals.</p>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.1</span> Explain structural typing
+          vs nominal typing. Why does TypeScript use structural typing?<span class="tag">Fundamentals</span></summary>
+        <div class="body">
+          <p>TypeScript compares types by shape (members/structure) rather than by declared name/identity. Two unrelated
+            interfaces with identical members are interchangeable. This matches JavaScript's duck-typed nature and makes
+            gradual typing of existing JS codebases practical. Contrast with nominal typing (Java, C#) where explicit
+            inheritance/declaration is required for compatibility. Follow-up: how do you simulate nominal typing in TS?
+            (branded/opaque types using a private tag field.)</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.2</span> What's the difference
+          between <code>interface</code> and <code>type</code>? When would you choose one over the other?<span
+            class="tag">Fundamentals</span></summary>
+        <div class="body">
+          <p>Both describe shapes. Interfaces support declaration merging and are generally preferred for public
+            object/API shapes and class contracts. Type aliases can represent unions, tuples, mapped/conditional types —
+            things interfaces cannot express. Practical rule: use <code>interface</code> for extendable object contracts
+            (esp. library-facing), <code>type</code> for unions, utility compositions, and function signatures.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.3</span> Explain generics with a
+          practical example (e.g., a typed API client or repository pattern).<span class="tag">Type System</span>
+        </summary>
+        <div class="body">
+          <p>Generics let you parameterize types so a function/class preserves the caller's type instead of widening to
+            <code>any</code>/<code>unknown</code>. Example:
+            <code>function fetchJson&lt;T&gt;(url: string): Promise&lt;T&gt;</code> lets consumers get back the exact
+            shape they expect while the implementation stays generic. Discuss constraints
+            (<code>T extends object</code>), default type params, and inference from function arguments.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.4</span> What are mapped types and
+          conditional types? Give a use case.<span class="tag">Advanced Types</span></summary>
+        <div class="body">
+          <p>Mapped types transform each property of an existing type (<code>Partial</code>, <code>Readonly</code>,
+            custom <code>{[K in keyof T]: ...}</code>). Conditional types (<code>T extends U ? X : Y</code>) let you
+            branch type-level logic, often combined with <code>infer</code> to extract nested types (e.g., unwrapping a
+            Promise's resolved type). Use case: building a strongly-typed event emitter where the payload type depends
+            on the event name.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.5</span> How does the Node.js
+          event loop work, and how does it interact with Promises/async-await under the hood?<span class="tag">Node
+            Internals</span></summary>
+        <div class="body">
+          <p>Single-threaded event loop with phases (timers, pending callbacks, poll, check, close callbacks) plus a
+            microtask queue (Promises, <code>process.nextTick</code>) that drains between phases/after each callback.
+            <code>async/await</code> is sugar over Promises — it doesn't create new threads; CPU-bound work still blocks
+            the loop. Mention worker_threads / child_process for CPU-heavy tasks, and libuv's thread pool for I/O like
+            fs and DNS.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.6</span> React: explain the
+          reconciliation algorithm and keys in lists.<span class="tag">React</span></summary>
+        <div class="body">
+          <p>React diffs the new virtual DOM tree against the previous one using heuristics: different element types →
+            full remount; same type → compare props/attributes and recurse into children. Keys give list items stable
+            identity across renders so React can match/reorder/reuse DOM nodes instead of destroying and recreating them
+            (avoiding lost state, unnecessary re-mounts). Common pitfall: using array index as key when list order can
+            change.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.7</span> Compare useMemo,
+          useCallback, and React.memo. When do they actually help performance?<span class="tag">React Performance</span>
+        </summary>
+        <div class="body">
+          <p><code>useMemo</code> memoizes a computed value; <code>useCallback</code> memoizes a function reference;
+            <code>React.memo</code> skips re-rendering a component if props are shallow-equal. They only help when the
+            memoized value/function is expensive to recompute OR passed to a memoized child / dependency array where
+            referential equality matters. Overusing them adds complexity and memory overhead without measurable gains —
+            profile first.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.8</span> Explain the differences
+          between REST calls from a React app using fetch vs a library like React Query/SWR, and why caching layers
+          matter.<span class="tag">Frontend Data</span></summary>
+        <div class="body">
+          <p>Raw fetch gives no caching, dedup, retries, or stale-while-revalidate semantics — you re-implement
+            loading/error/race-condition handling manually. React Query/SWR provide cache keys, background refetching,
+            request de-duplication, optimistic updates, and pagination helpers, reducing boilerplate and preventing
+            stale UI / race conditions on fast navigation.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">4.9</span> How would you type a
+          discriminated union for handling async request states (idle/loading/success/error)?<span class="tag">Type
+            System + React</span></summary>
+        <div class="body">
+          <pre><code>type RequestState&lt;T&gt; =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: string };</code></pre>
+          <p>The discriminant (<code>status</code>) lets TypeScript narrow the union inside conditionals/switches, so
+            <code>data</code> is only accessible when <code>status === 'success'</code>. This is the idiomatic
+            replacement for loose booleans like <code>isLoading</code>/<code>isError</code> that can represent
+            impossible states simultaneously.</p>
+        </div>
+      </details>
+
+      <div class="exercise">
+        <h4>Coding Exercise 4.1 — Typed Debounce Hook</h4>
+        <p>Implement a generic <code>useDebouncedValue&lt;T&gt;(value: T, delayMs: number): T</code> React hook in
+          TypeScript with no external dependencies.</p>
+        <ul>
+          <li>Must clean up timers on unmount / value change (no memory leaks).</li>
+          <li>Must be strongly typed for any value type <code>T</code>.</li>
+          <li>Bonus: add an optional <code>leading</code> flag to fire immediately on first change.</li>
+        </ul>
+        <p class="badge-hint">Evaluates: hooks lifecycle, generics, cleanup functions, edge cases (rapid updates,
+          unmount during pending timer).</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>import { useEffect, useRef, useState } from 'react';
+
+function useDebouncedValue&lt;T&gt;(value: T, delayMs: number, leading = false): T {
+  const [debounced, setDebounced] = useState&lt;T&gt;(value);
+  const timerRef = useRef&lt;ReturnType&lt;typeof setTimeout&gt; | null&gt;(null);
+  const isFirstRef = useRef(true);
+
+  useEffect(() =&gt; {
+    if (leading &amp;&amp; isFirstRef.current) {
+      isFirstRef.current = false;
+      setDebounced(value);
+      return;
+    }
+
+    timerRef.current = setTimeout(() =&gt; {
+      setDebounced(value);
+    }, delayMs);
+
+    return () =&gt; {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [value, delayMs, leading]);
+
+  return debounced;
+}</code></pre>
+            <p><strong>Why this works:</strong> the cleanup function returned from <code>useEffect</code> clears the
+              pending timer whenever <code>value</code> changes again before the delay elapses, or on unmount — this is
+              what prevents the classic bug of a stale <code>setDebounced</code> firing after the component is gone or
+              after a newer value has already superseded it. The generic <code>T</code> is inferred from the argument,
+              so it works for strings, objects, arrays, etc. with no <code>any</code>. The <code>leading</code> flag
+              uses a ref (not state) to track "have we fired the first update yet" without triggering an extra render.
+            </p>
+            <p><strong>Common mistakes to watch for:</strong> forgetting the cleanup (memory leak / stale updates),
+              putting <code>debounced</code> itself in the dependency array (infinite loop), or using
+              <code>setInterval</code> instead of <code>setTimeout</code>.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <h4>Coding Exercise 4.2 — Typed Event Emitter</h4>
+        <p>Build a type-safe <code>EventEmitter</code> class where each event name maps to a specific payload type,
+          enforced at compile time (no <code>any</code>).</p>
+        <pre><code>interface Events {
+  userCreated: { id: string; email: string };
+  userDeleted: { id: string };
+}
+const emitter = new TypedEmitter&lt;Events&gt;();
+emitter.on('userCreated', (payload) =&gt; { /* payload typed correctly */ });
+emitter.emit('userDeleted', { id: '123' }); // compile error if shape wrong</code></pre>
+        <p class="badge-hint">Evaluates: mapped/generic types, keyof, function overload inference.</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>type Listener&lt;T&gt; = (payload: T) =&gt; void;
+
+class TypedEmitter&lt;Events extends Record&lt;string, unknown&gt;&gt; {
+  private listeners: {
+    [K in keyof Events]?: Array&lt;Listener&lt;Events[K]&gt;&gt;
+  } = {};
+
+  on&lt;K extends keyof Events&gt;(event: K, listener: Listener&lt;Events[K]&gt;): void {
+    const arr = this.listeners[event] ?? [];
+    arr.push(listener);
+    this.listeners[event] = arr;
+  }
+
+  off&lt;K extends keyof Events&gt;(event: K, listener: Listener&lt;Events[K]&gt;): void {
+    const arr = this.listeners[event];
+    if (!arr) return;
+    this.listeners[event] = arr.filter(l =&gt; l !== listener);
+  }
+
+  emit&lt;K extends keyof Events&gt;(event: K, payload: Events[K]): void {
+    (this.listeners[event] ?? []).forEach(l =&gt; l(payload));
+  }
+}</code></pre>
+            <p><strong>Why this works:</strong> the class is generic over an <code>Events</code> map, and every method
+              uses <code>K extends keyof Events</code> so TypeScript ties the <code>event</code> name to the exact
+              payload type via <code>Events[K]</code> — passing the wrong payload shape for a given event name is a
+              compile-time error, not a runtime surprise. No <code>any</code> is needed anywhere.</p>
+            <p><strong>Follow-ups interviewers ask:</strong> how would you add a <code>once()</code> method (wrap the
+              listener, unsubscribe after first call)? How would you support wildcard/catch-all listeners without
+              breaking the type safety (harder — usually requires a separate loosely-typed channel)?</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <h4>Coding Exercise 4.3 — Node.js Rate Limiter Middleware</h4>
+        <p>Write an Express (or Fastify) middleware implementing a sliding-window rate limiter per IP, in-memory (no
+          Redis), fully typed, with configurable window and max requests. Discuss how you'd make it distributed-safe
+          across multiple Node instances (segue into Microservices/System Design sections).</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>import { Request, Response, NextFunction } from 'express';
+
+interface RateLimitOptions {
+  windowMs: number;
+  max: number;
+}
+
+function slidingWindowRateLimiter({ windowMs, max }: RateLimitOptions) {
+  const hits = new Map&lt;string, number[]&gt;(); // ip -> timestamps
+
+  return (req: Request, res: Response, next: NextFunction) =&gt; {
+    const ip = req.ip ?? 'unknown';
+    const now = Date.now();
+    const windowStart = now - windowMs;
+
+    const timestamps = (hits.get(ip) ?? []).filter(t =&gt; t &gt; windowStart);
+    timestamps.push(now);
+    hits.set(ip, timestamps);
+
+    if (timestamps.length &gt; max) {
+      res.setHeader('Retry-After', Math.ceil(windowMs / 1000).toString());
+      return res.status(429).json({
+        error: { code: 'RATE_LIMITED', message: 'Too many requests' }
+      });
+    }
+
+    next();
+  };
+}</code></pre>
+            <p><strong>Why this works:</strong> instead of a fixed counter that resets at a hard boundary (fixed window,
+              which allows bursts right at the edge of two windows), this keeps a rolling list of hit timestamps per IP
+              and filters out anything older than <code>windowMs</code> on every request — an accurate sliding window
+              log. Trade-off: memory grows with request volume per key; a production version would cap the array size or
+              switch to a sliding window counter approximation.</p>
+            <p><strong>Distributed-safe follow-up (what interviewers want you to raise unprompted):</strong> this
+              in-memory <code>Map</code> only works per Node process. Across multiple instances behind a load balancer,
+              each instance has its own counter, so the effective limit is <code>max × instanceCount</code>. Fix: move
+              the counter to a shared store (Redis) using an atomic <code>INCR</code> + <code>EXPIRE</code> or a Lua
+              script, or push rate limiting up to the API Gateway layer entirely.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ CLOUD & CI/CD ============ -->
+    <section id="cloud">
+      <h2>5. Cloud Platforms &amp; CI/CD <span class="roi-badge">Vocabulary-heavy — cram last</span></h2>
+      <p class="intro">Deployment pipelines, infra-as-code, containers/orchestration, and observability.</p>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.1</span> Walk through a typical
+          CI/CD pipeline for a Node.js/React monorepo.<span class="tag">CI/CD</span></summary>
+        <div class="body">
+          <p>CI on PR: install deps (cached), lint, type-check, unit tests, build, maybe preview deploy. On merge to
+            main: build production artifacts/Docker images, tag with commit SHA, push to a registry, run integration/e2e
+            tests against a staging environment, then deploy (blue-green/canary/rolling) to production with automated
+            rollback on health-check failure. Emphasize: pipeline should fail fast (cheap checks like lint before
+            expensive e2e), and deployments should be reproducible from any commit.</p>
+        </div>
+      </details>
+
+      <details name="cloudA" class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.2</span> Blue-green vs canary vs
+          rolling deployments — trade-offs?<span class="tag">Deployment Strategy</span></summary>
+        <div class="body">
+          <p>Blue-green: two full environments, switch traffic instantly, easy instant rollback, but double infra cost
+            during cutover and doesn't catch issues gradually. Canary: route a small % of traffic to the new version,
+            monitor metrics, gradually increase — catches regressions before full exposure, but needs good
+            metrics/automation to be safe and takes longer. Rolling: replace instances gradually (default in Kubernetes
+            deployments) — no extra infra cost, but rollback is slower and you briefly run mixed versions, which
+            requires backward-compatible APIs/schemas.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.3</span> What is Infrastructure as
+          Code, and why prefer it (e.g., Terraform/CDK) over manual console changes?<span class="tag">IaC</span>
+        </summary>
+        <div class="body">
+          <p>Infra defined declaratively in version-controlled files, enabling code review, reproducibility across
+            environments, drift detection, and disaster recovery (rebuild from code). Manual console changes are
+            untracked, unreviewable, and prone to environment drift between staging/prod. Discuss state management
+            challenges in Terraform (remote state, locking to prevent concurrent applies) and CDK's advantage of using
+            real programming languages for reuse/abstraction.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.4</span> Explain the difference
+          between a container and a VM, and why Kubernetes exists.<span class="tag">Containers</span></summary>
+        <div class="body">
+          <p>VMs virtualize hardware and run a full guest OS per instance (heavier, stronger isolation); containers
+            share the host kernel and isolate at the process level (namespaces/cgroups), making them lightweight and
+            fast to start. Kubernetes solves the problem of running many containers reliably across a cluster of
+            machines: scheduling, self-healing (restarting failed containers), scaling, service discovery, rolling
+            updates, and declarative desired-state management.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.5</span> How do you manage secrets
+          (API keys, DB credentials) in a cloud-native CI/CD pipeline?<span class="tag">Security</span></summary>
+        <div class="body">
+          <p>Never commit secrets to source control. Use a secrets manager (AWS Secrets Manager, Azure Key Vault,
+            HashiCorp Vault) injected at runtime or deploy time; CI systems have their own encrypted secret stores
+            (GitHub Actions secrets) for pipeline-time credentials. Rotate regularly, scope permissions minimally (least
+            privilege IAM roles per service), and audit secret access. For Kubernetes, discuss Secrets objects (base64,
+            not encrypted at rest by default — pair with encryption at rest or an external secrets operator).</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.6</span> What would you monitor in
+          production for a distributed system, and what's the difference between monitoring and observability?<span
+            class="tag">Observability</span></summary>
+        <div class="body">
+          <p>Monitoring = watching known metrics/dashboards for known failure modes (CPU, error rate, latency
+            percentiles — the "three pillars": metrics, logs, traces). Observability = the ability to ask new questions
+            about system behavior you didn't anticipate, using high-cardinality structured data (distributed tracing
+            across services, e.g., OpenTelemetry, to follow one request across multiple microservices). Discuss
+            SLIs/SLOs/error budgets as the framework connecting monitoring to business reliability goals.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">5.7</span> How would you design a
+          zero-downtime database migration as part of a deployment?<span class="tag">Migrations</span></summary>
+        <div class="body">
+          <p>Use the expand/contract (parallel change) pattern: (1) expand — add new column/table without removing old,
+            deploy code that writes to both; (2) backfill existing data; (3) migrate reads to the new structure; (4)
+            contract — once all instances are on new code and backfill is verified, remove the old column/table. This
+            avoids the classic problem where a schema migration and a rolling code deploy overlap and old-version pods
+            break against the new schema (or vice versa).</p>
+        </div>
+      </details>
+
+      <table>
+        <tr>
+          <th>Concept</th>
+          <th>AWS</th>
+          <th>Azure</th>
+          <th>GCP</th>
+        </tr>
+        <tr>
+          <td>Managed Kubernetes</td>
+          <td>EKS</td>
+          <td>AKS</td>
+          <td>GKE</td>
+        </tr>
+        <tr>
+          <td>Serverless functions</td>
+          <td>Lambda</td>
+          <td>Functions</td>
+          <td>Cloud Functions</td>
+        </tr>
+        <tr>
+          <td>Object storage</td>
+          <td>S3</td>
+          <td>Blob Storage</td>
+          <td>Cloud Storage</td>
+        </tr>
+        <tr>
+          <td>Managed queue</td>
+          <td>SQS/SNS</td>
+          <td>Service Bus</td>
+          <td>Pub/Sub</td>
+        </tr>
+        <tr>
+          <td>Secrets</td>
+          <td>Secrets Manager</td>
+          <td>Key Vault</td>
+          <td>Secret Manager</td>
+        </tr>
+      </table>
+
+      <div class="exercise">
+        <h4>Coding Exercise 5.1 — Write a CI Pipeline Config</h4>
+        <p>Write a GitHub Actions workflow (YAML) for a Node.js/TypeScript monorepo (frontend + backend) that: installs
+          deps with caching, runs lint + type-check + unit tests in parallel jobs, builds Docker images tagged with the
+          commit SHA on merge to main, and pushes to a registry. Include a manual approval gate before a production
+          deploy job.</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <pre><code>name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm test -- --ci
+
+  build-and-push:
+    needs: [lint, typecheck, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy-production:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment:
+      name: production   # requires manual approval configured on this GitHub Environment
+    steps:
+      - run: echo "Deploying ${{ github.sha }} to production"</code></pre>
+            <p><strong>Why this works:</strong> lint/typecheck/test run as separate parallel jobs (not sequential steps
+              in one job) so the pipeline fails fast and gives independent, clearly-labeled status checks; they all gate
+              <code>build-and-push</code> via <code>needs</code>. The image is tagged with <code>github.sha</code>, not
+              <code>latest</code>, making every deploy traceable back to an exact commit. The manual approval gate is
+              implemented via a GitHub <strong>Environment</strong> named <code>production</code> with required
+              reviewers configured in repo settings — the job simply pauses until someone approves it, no extra
+              scripting needed.</p>
+            <p><strong>Follow-ups:</strong> how would you add a staging environment that deploys automatically but
+              production requires approval? (Two separate <code>environment:</code> blocks, only production has required
+              reviewers.) How would you cache Docker layers to speed up builds?
+              (<code>cache-from</code>/<code>cache-to</code> with <code>type=gha</code> in
+              <code>build-push-action</code>.)</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <h4>Coding Exercise 5.2 — Kubernetes Manifest Review/Fix</h4>
+        <p>Given a flawed Deployment + Service YAML (no resource limits, no readiness/liveness probes,
+          <code>latest</code> image tag, single replica), identify every production-readiness issue and rewrite the
+          manifest correctly.</p>
+        <details class="q" style="margin-top:12px">
+          <summary>Model Solution<span class="tag">Reveal</span></summary>
+          <div class="body">
+            <p><strong>Issues to identify (say these out loud before showing the fix):</strong></p>
+            <ul>
+              <li><code>image: myapp:latest</code> — not reproducible/rollback-unsafe; a redeploy can silently pull a
+                different image than what was tested.</li>
+              <li>No <code>resources.requests/limits</code> — the pod can starve other workloads (no requests) or get
+                OOMKilled unpredictably (no limits); the scheduler also can't bin-pack effectively without requests.
+              </li>
+              <li>No <code>readinessProbe</code> — Kubernetes will route traffic to a pod before it's actually ready to
+                serve, causing errors during startup/rolling updates.</li>
+              <li>No <code>livenessProbe</code> — a hung/deadlocked process never gets restarted automatically.</li>
+              <li><code>replicas: 1</code> — single point of failure; any node/pod restart causes a full outage.</li>
+            </ul>
+            <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: myapp }
+  template:
+    metadata:
+      labels: { app: myapp }
+    spec:
+      containers:
+        - name: myapp
+          image: myapp:1.4.2   # pinned, immutable tag (or digest) — never :latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests: { cpu: '250m', memory: '256Mi' }
+            limits: { cpu: '500m', memory: '512Mi' }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+spec:
+  selector: { app: myapp }
+  ports:
+    - port: 80
+      targetPort: 8080</code></pre>
+            <p><strong>Why this works:</strong> <code>replicas: 3</code> plus the readiness probe means a rolling update
+              never drops all pods at once and never sends traffic to a pod that isn't ready yet. Requests/limits let
+              the scheduler place pods sensibly and protect the node from a single runaway container, while the liveness
+              probe recovers from hangs automatically instead of requiring manual intervention.</p>
+            <p><strong>Bonus points interviewers look for:</strong> mentioning a <code>PodDisruptionBudget</code> (so
+              voluntary disruptions like node drains don't take down too many replicas at once) and a
+              <code>HorizontalPodAutoscaler</code> tied to CPU/memory or custom metrics for actual traffic-based
+              scaling.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ CODING EXERCISES SUMMARY ============ -->
+    <section id="coding">
+      <h2>6. Full Coding-Round Exercise Bank (Quick Reference — ROI order)</h2>
+      <table>
+        <tr>
+          <th>#</th>
+          <th>Exercise</th>
+          <th>Area</th>
+          <th>~Time</th>
+        </tr>
+        <tr>
+          <td>1.1</td>
+          <td>Design distributed job scheduler</td>
+          <td>System design (whiteboard)</td>
+          <td>45 min</td>
+        </tr>
+        <tr>
+          <td>1.2</td>
+          <td>Design collaborative editor backend</td>
+          <td>System design (whiteboard)</td>
+          <td>45 min</td>
+        </tr>
+        <tr>
+          <td>2.1</td>
+          <td>Idempotent payment consumer</td>
+          <td>Microservices</td>
+          <td>25 min</td>
+        </tr>
+        <tr>
+          <td>2.2</td>
+          <td>Circuit breaker</td>
+          <td>Microservices</td>
+          <td>30 min</td>
+        </tr>
+        <tr>
+          <td>3.1</td>
+          <td>REST CRUD API + validation</td>
+          <td>API design</td>
+          <td>40 min</td>
+        </tr>
+        <tr>
+          <td>3.2</td>
+          <td>Cursor pagination</td>
+          <td>API design</td>
+          <td>25 min</td>
+        </tr>
+        <tr>
+          <td>4.1</td>
+          <td>Typed debounce hook</td>
+          <td>TS/React</td>
+          <td>20 min</td>
+        </tr>
+        <tr>
+          <td>4.2</td>
+          <td>Typed event emitter</td>
+          <td>TS generics</td>
+          <td>25 min</td>
+        </tr>
+        <tr>
+          <td>4.3</td>
+          <td>Rate limiter middleware</td>
+          <td>Node backend</td>
+          <td>30 min</td>
+        </tr>
+        <tr>
+          <td>5.1</td>
+          <td>CI pipeline YAML</td>
+          <td>DevOps</td>
+          <td>20 min</td>
+        </tr>
+        <tr>
+          <td>5.2</td>
+          <td>K8s manifest review</td>
+          <td>DevOps</td>
+          <td>20 min</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ BEHAVIORAL ============ -->
+    <section id="behavioral">
+      <h2>7. Behavioral &amp; Wrap-Up Questions</h2>
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">7.1</span> Tell me about a time you
+          had to debug a production incident in a distributed system. How did you find the root cause?<span
+            class="tag">Behavioral</span></summary>
+        <div class="body">
+          <p>Look for: use of tracing/logs/metrics rather than guesswork, systematic narrowing (bisecting the request
+            path), clear communication during the incident, and a follow-up (postmortem, added monitoring/alerting, or a
+            code fix preventing recurrence).</p>
+        </div>
+      </details>
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">7.2</span> Describe a time you
+          disagreed with a technical decision (e.g., choice of architecture, library, or pattern). How did you handle
+          it?<span class="tag">Behavioral</span></summary>
+        <div class="body">
+          <p>Look for: brought data/trade-offs rather than opinion, disagreed respectfully, and either changed the
+            outcome with evidence or committed to the team decision once made.</p>
+        </div>
+      </details>
+      <details class="q">
+        <summary><span style="color:var(--accent);font-weight:700;margin-right:6px">7.3</span> What's a technical
+          decision you made that you'd do differently now?<span class="tag">Behavioral</span></summary>
+        <div class="body">
+          <p>Look for: genuine reflection/ownership rather than blaming others, and a concrete lesson that changed later
+            behavior.</p>
+        </div>
+      </details>
+    </section>
+
+  </main>
+  <footer>Prepared as an interview/self-study reference — ordered by ROI: System Design · Microservices · API Design ·
+    TypeScript Full-Stack · Cloud &amp; CI/CD.</footer>
+
+  <script>
+    (function () {
+      var STORAGE_PREFIX = 'interview_prep_answer_';
+
+      // Give every question a stable id based on section + position, then inject
+      // a "Your Answer" textarea right at the top of its body (above the model answer)
+      // so you can attempt it BEFORE reading the expert answer below.
+      document.querySelectorAll('section').forEach(function (section, sIdx) {
+        var sectionId = section.id || ('section' + sIdx);
+        var questions = section.querySelectorAll('.q');
+        questions.forEach(function (q, qIdx) {
+          var body = q.querySelector('.body');
+          if (!body) return;
+          var qid = sectionId + '_q' + qIdx;
+
+          var box = document.createElement('div');
+          box.className = 'answer-box';
+
+          var label = document.createElement('label');
+          label.setAttribute('for', qid);
+          label.textContent = 'Your answer (try before reading below)';
+
+          var toolbarRow = document.createElement('div');
+          toolbarRow.className = 'toolbar-row';
+
+          var textarea = document.createElement('textarea');
+          textarea.id = qid;
+          textarea.placeholder = 'Type your answer here, then expand the model answer below to compare...';
+
+          var savedHint = document.createElement('span');
+          savedHint.className = 'saved-hint';
+          savedHint.textContent = 'Saved ✓';
+
+          // Restore any previously saved answer
+          var existing = window.localStorage.getItem(STORAGE_PREFIX + qid);
+          if (existing) textarea.value = existing;
+
+          var saveTimeout;
+          textarea.addEventListener('input', function () {
+            window.localStorage.setItem(STORAGE_PREFIX + qid, textarea.value);
+            savedHint.classList.add('show');
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(function () { savedHint.classList.remove('show'); }, 1200);
+          });
+
+          toolbarRow.appendChild(textarea);
+          box.appendChild(label);
+          box.appendChild(toolbarRow);
+          box.appendChild(savedHint);
+
+          body.insertBefore(box, body.firstChild);
+
+          // Prevent clicking/typing in the textarea from toggling the <details> open/closed
+          textarea.addEventListener('click', function (e) { e.stopPropagation(); });
+          textarea.addEventListener('keydown', function (e) { e.stopPropagation(); });
+        });
+
+        // Exercises: append a "Your solution / notes" textarea at the end of each .exercise block
+        var exercises = section.querySelectorAll('.exercise');
+        exercises.forEach(function (ex, eIdx) {
+          var eid = sectionId + '_ex' + eIdx;
+
+          var box = document.createElement('div');
+          box.className = 'answer-box';
+
+          var label = document.createElement('label');
+          label.setAttribute('for', eid);
+          label.textContent = 'Your solution / notes / pseudocode';
+
+          var toolbarRow = document.createElement('div');
+          toolbarRow.className = 'toolbar-row';
+
+          var textarea = document.createElement('textarea');
+          textarea.id = eid;
+          textarea.placeholder = 'Write code, pseudocode, or design notes here...';
+          textarea.style.minHeight = '160px';
+          textarea.style.fontFamily = 'SFMono-Regular,Consolas,Menlo,monospace';
+
+          var savedHint = document.createElement('span');
+          savedHint.className = 'saved-hint';
+          savedHint.textContent = 'Saved ✓';
+
+          var existing = window.localStorage.getItem(STORAGE_PREFIX + eid);
+          if (existing) textarea.value = existing;
+
+          var saveTimeout;
+          textarea.addEventListener('input', function () {
+            window.localStorage.setItem(STORAGE_PREFIX + eid, textarea.value);
+            savedHint.classList.add('show');
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(function () { savedHint.classList.remove('show'); }, 1200);
+          });
+
+          toolbarRow.appendChild(textarea);
+          box.appendChild(label);
+          box.appendChild(toolbarRow);
+          box.appendChild(savedHint);
+
+          ex.appendChild(box);
+        });
+      });
+
+      // Optional: a "clear all my answers" control at the very bottom of the page
+      var clearBtn = document.createElement('button');
+      clearBtn.textContent = 'Clear all my saved answers & evaluations';
+      clearBtn.style.cssText = 'display:block;margin:0 auto 20px;background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.8rem';
+      clearBtn.addEventListener('click', function () {
+        if (!confirm('Clear every answer AND every saved AI evaluation on this page? This cannot be undone.')) return;
+        Object.keys(window.localStorage).forEach(function (k) {
+          if (k.indexOf(STORAGE_PREFIX) === 0 || k.indexOf('interview_prep_eval_') === 0) {
+            window.localStorage.removeItem(k);
+          }
+        });
+        document.querySelectorAll('.answer-box textarea').forEach(function (t) { t.value = ''; });
+        document.querySelectorAll('.eval-result').forEach(function (r) {
+          r.className = 'eval-result';
+          r.innerHTML = '';
+        });
+        document.querySelectorAll('.eval-saved-tag').forEach(function (t) { t.classList.remove('show'); });
+      });
+      document.querySelector('footer').insertAdjacentElement('beforebegin', clearBtn);
+    })();
+  </script>
+
+  <!-- ============ AI EVALUATION ============ -->
+  <script>
+    (function () {
+      var DEFAULT_MODEL = 'minimax-m3:cloud';
+
+      // Build evaluation block: a button + spinner + result panel, attached to each answer box.
+      document.querySelectorAll('.answer-box').forEach(function (box, idx) {
+        var textarea = box.querySelector('textarea');
+        if (!textarea) return;
+
+        var btn = document.createElement('button');
+        btn.className = 'eval-btn';
+        btn.type = 'button';
+        btn.textContent = 'Evaluate with AI';
+
+        var modelPick = document.createElement('span');
+        modelPick.className = 'eval-model-pick';
+        modelPick.innerHTML = ' model: ' +
+          '<select class="eval-model">' +
+          '<option value="minimax-m3:cloud" selected>minimax-m3:cloud</option>' +
+          '<option value="gemma4:12b">gemma4:12b</option>' +
+          '</select>';
+
+        var result = document.createElement('div');
+        result.className = 'eval-result';
+
+        btn.appendChild(modelPick);
+
+        var resetBtn = document.createElement('button');
+        resetBtn.className = 'eval-reset-btn';
+        resetBtn.type = 'button';
+        resetBtn.textContent = 'Reset eval';
+        resetBtn.title = 'Clear the saved AI evaluation for this question';
+
+        var savedTag = document.createElement('span');
+        savedTag.className = 'eval-saved-tag';
+        savedTag.textContent = 'Eval saved ✓';
+
+        var actions = document.createElement('div');
+        actions.className = 'eval-actions';
+        actions.appendChild(btn);
+        actions.appendChild(resetBtn);
+        actions.appendChild(savedTag);
+        box.appendChild(actions);
+
+        // Stable per-question localStorage key for the AI evaluation
+        var storageKey = 'interview_prep_eval_' + textarea.id;
+
+        // Restore any previously saved evaluation on load
+        var saved = null;
+        try { saved = JSON.parse(window.localStorage.getItem(storageKey) || 'null'); } catch (e) { }
+        if (saved && saved.html) {
+          result.className = 'eval-result show';
+          result.innerHTML = saved.html;
+          savedTag.classList.add('show');
+        }
+
+        // Reset button: clear saved eval for this question
+        resetBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          window.localStorage.removeItem(storageKey);
+          result.className = 'eval-result';
+          result.innerHTML = '';
+          savedTag.classList.remove('show');
+        });
+
+        // Collapse/reveal toggle for everything below the textarea (model answer / exercise reveal).
+        // The model answer is left VISIBLE by default — the user can hide it themselves to attempt
+        // the question before peeking. We deliberately do NOT auto-add 'answer-collapsed'.
+        var toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'eval-toggle';
+        var target = btn.closest('.q') || btn.closest('.exercise');
+
+        toggle.textContent = 'Hide model answer ▾';
+
+        box.appendChild(toggle);
+        box.appendChild(result);
+        // Toggle has to live INSIDE the answer-box so the :not(.answer-box) selector above protects it
+        toggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (!target) return;
+          var collapsed = target.classList.toggle('answer-collapsed');
+          toggle.textContent = collapsed ? 'Show model answer ▸' : 'Hide model answer ▾';
+        });
+
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var qBox = btn.closest('.q, .exercise');
+          var userAnswer = textarea.value.trim();
+          if (!userAnswer) {
+            result.className = 'eval-result show';
+            result.innerHTML = '<span class="eval-error">Type an answer first, then click Evaluate.</span>';
+            return;
+          }
+
+          // Find the question prompt (the <summary>) and the model answer (the .body content excluding the answer-box we added).
+          var qEl = btn.closest('.q');
+          var exEl = btn.closest('.exercise');
+          var question, modelAnswer;
+          if (qEl) {
+            var sum = qEl.querySelector('summary');
+            question = sum ? sum.textContent.replace(/\s+/g, ' ').trim() : '';
+            // clone .body, strip the answer-box we injected, get the text
+            var body = qEl.querySelector('.body');
+            var tmpBody = body ? body.cloneNode(true) : null;
+            if (tmpBody) {
+              var injected = tmpBody.querySelectorAll('.answer-box');
+              for (var i = 0; i < injected.length; i++) injected[i].remove();
+              modelAnswer = tmpBody.textContent.replace(/\s+/g, ' ').trim();
+            }
+          } else if (exEl) {
+            var h4 = exEl.querySelector('h4');
+            question = h4 ? h4.textContent.trim() : 'Coding exercise';
+            var exBody = exEl.querySelector('.body');
+            var tmpEx = exBody ? exBody.cloneNode(true) : null;
+            if (tmpEx) {
+              var injectedEx = tmpEx.querySelectorAll('.answer-box');
+              for (var j = 0; j < injectedEx.length; j++) injectedEx[j].remove();
+              modelAnswer = tmpEx.textContent.replace(/\s+/g, ' ').trim();
+            }
+            // also include the bullet prompt above
+            var pList = Array.from(exEl.querySelectorAll('p, ul')).map(function (n) { return n.textContent.trim(); }).join(' ');
+            question = question + ' | ' + pList;
+          }
+
+          var model = (btn.querySelector('.eval-model') || {}).value || DEFAULT_MODEL;
+          runEvaluation({
+            question: (question || '').slice(0, 1500),
+            userAnswer: userAnswer.slice(0, 4000),
+            modelAnswer: (modelAnswer || '').slice(0, 4000),
+            model: model,
+            out: result,
+            btn: btn,
+            onComplete: function (payload) {
+              // Persist the rendered HTML so the eval is restored on reload
+              try { window.localStorage.setItem(storageKey, JSON.stringify(payload)); } catch (e) { }
+              savedTag.classList.add('show');
+            }
+          });
+        });
+      });
+
+      function runEvaluation(opts) {
+        var out = opts.out, btn = opts.btn, onComplete = opts.onComplete || function () { };
+        btn.disabled = true;
+        out.className = 'eval-result show';
+        out.innerHTML = '<span class="eval-spinner"></span>Evaluating with ' + opts.model + '…';
+
+        var prompt =
+          'You are a strict senior engineering interviewer grading a candidate\'s answer against an expert model answer.\n' +
+          'Return ONLY a compact JSON object (no markdown, no prose around it) with exactly this shape:\n' +
+          '{"score": 0-100, "grade": "A|B|C|D|F", "verdict": "one short sentence", "strengths": ["..."], "gaps": ["..."], "improvements": ["..."]}\n' +
+          'Scoring guide: 90+ = covers all key points, accurate, well-articulated; 75-89 = mostly correct, minor gaps; 60-74 = partial coverage or some inaccuracy; 45-59 = significant gaps; <45 = misses core idea or is wrong.\n\n' +
+          'QUESTION: ' + opts.question + '\n\n' +
+          'CANDIDATE ANSWER: ' + opts.userAnswer + '\n\n' +
+          'EXPERT MODEL ANSWER: ' + opts.modelAnswer + '\n';
+
+        fetch('/api/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: opts.model, prompt: prompt })
+        })
+          .then(function (r) {
+            if (!r.ok) return r.text().then(function (t) { throw new Error('Proxy ' + r.status + ': ' + t.slice(0, 200)); });
+            return r.json();
+          })
+          .then(function (data) {
+            btn.disabled = false;
+            var raw = (data && data.response) || '';
+            var parsed = tryParseJSON(raw);
+            if (!parsed) {
+              var errHtml = '<div class="eval-error">Could not parse model output as JSON.</div>' +
+                '<pre style="white-space:pre-wrap;max-height:220px;overflow:auto">' + escapeHtml(raw.slice(0, 1500)) + '</pre>';
+              out.innerHTML = errHtml;
+              onComplete({ html: errHtml });
+              return;
+            }
+            renderResult(out, parsed);
+            onComplete({ score: Number(parsed.score) || 0, grade: parsed.grade, html: out.innerHTML });
+          })
+          .catch(function (err) {
+            btn.disabled = false;
+            var errHtml = '<div class="eval-error">Error: ' + escapeHtml(err.message || String(err)) +
+              '<br><br>Make sure the local proxy is running: <code>node ai-eval-server.js</code>' +
+              '<br>And Ollama is running: <code>ollama serve</code></div>';
+            out.innerHTML = errHtml;
+            onComplete({ html: errHtml });
+          });
+      }
+
+      function tryParseJSON(s) {
+        // Strip ```{...``` fences the model sometimes adds
+        s = (s || '').trim();
+        var fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fence) s = fence[1].trim();
+        // Find first { ... last }
+        var first = s.indexOf('{'), last = s.lastIndexOf('}');
+        if (first >= 0 && last > first) s = s.slice(first, last + 1);
+        try { return JSON.parse(s); } catch (e) { return null; }
+      }
+
+      function renderResult(out, p) {
+        var score = Number(p.score) || 0;
+        var cls = score >= 75 ? 's-hi' : (score >= 60 ? 's-md' : 's-lo');
+        var html = '<span class="eval-score ' + cls + '">' + score + '/100 · ' + (p.grade || '?') + '</span>' +
+          '<strong>Verdict:</strong> ' + escapeHtml(p.verdict || '');
+        if (Array.isArray(p.strengths) && p.strengths.length) {
+          html += '<h5>Strengths</h5><ul>' + p.strengths.map(function (s) { return '<li>' + escapeHtml(s) + '</li>'; }).join('') + '</ul>';
+        }
+        if (Array.isArray(p.gaps) && p.gaps.length) {
+          html += '<h5>Gaps vs. model answer</h5><ul>' + p.gaps.map(function (s) { return '<li>' + escapeHtml(s) + '</li>'; }).join('') + '</ul>';
+        }
+        if (Array.isArray(p.improvements) && p.improvements.length) {
+          html += '<h5>How to improve</h5><ul>' + p.improvements.map(function (s) { return '<li>' + escapeHtml(s) + '</li>'; }).join('') + '</ul>';
+        }
+        out.innerHTML = html;
+      }
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

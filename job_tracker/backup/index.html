@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c3aed'/%3E%3Cpath d='M18 20h28v6H18zM18 30h20v6H18zM18 40h14v6H18z' fill='white'/%3E%3C/svg%3E">
+    <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c3aed'/%3E%3Cpath d='M18 20h28v6H18zM18 30h20v6H18zM18 40h14v6H18z' fill='white'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --bg-primary: #0d0d0f;
+            --bg-secondary: #16161a;
+            --bg-tertiary: #1e1e24;
+            --bg-card: #1a1a1f;
+            --accent: #7c3aed;
+            --accent-hover: #8b5cf6;
+            --accent-glow: rgba(124, 58, 237, 0.3);
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
+
+        .last-updated { color: var(--text-muted); font-size: 0.875rem; }
+
+        /* Search Bar Styles */
+        .search-container {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+        #searchInput:focus { outline: none; border-color: var(--accent); }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+
+        .stat-value { font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-top: 0.25rem; }
+        .stat-card.total { border-left: 3px solid var(--accent); }
+        .stat-card.applied { border-left: 3px solid var(--info); }
+        .stat-card.interview { border-left: 3px solid var(--warning); }
+        .stat-card.offer { border-left: 3px solid var(--success); }
+        .stat-card.rejected { border-left: 3px solid var(--danger); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .section-title { font-size: 1rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-outline:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
+
+        /* Forms */
+        .form-group { margin-bottom: 1rem; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem; }
+        input, select, textarea {
+            width: 100%; padding: 0.75rem 1rem;
+            background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text-primary); font-family: inherit; font-size: 0.875rem; transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 80px; }
+
+        /* Table */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th, td { padding: 0.875rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 500; background: var(--bg-tertiary); }
+        tr:hover td { background: var(--bg-tertiary); }
+
+        /* Status badges */
+        .status { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
+        .status-applied { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .status-phone { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .status-interview { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .status-offer { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .status-withdrawn { background: rgba(113, 113, 122, 0.15); color: #a1a1aa; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        /* Follow-up indicators */
+        .followup-upcoming { color: var(--info); font-weight: 500; }
+        .followup-due { color: var(--warning); font-weight: 500; }
+        .followup-overdue { color: var(--danger); font-weight: 600; }
+        .followup-ok { color: var(--text-muted); }
+
+        /* Action buttons in table */
+        .actions { display: flex; gap: 0.5rem; }
+        .btn-icon {
+            width: 28px; height: 28px; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-secondary);
+            cursor: pointer; transition: all 0.15s;
+        }
+        .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 90%; max-width: 500px; max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+        .modal-title { font-weight: 600; font-size: 1.125rem; }
+        .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; line-height: 1; }
+        .modal-close:hover { color: var(--text-primary); }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+        .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+
+        /* Quick Add Section */
+        .quick-add { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .quick-add input { flex: 1; }
+
+        /* Date Section Headers */
+        .date-section { margin-bottom: 1.5rem; }
+        .date-section-header { font-size: 0.875rem; font-weight: 600; color: var(--accent); padding: 0.5rem 0; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">💼</div>
+                <h1>Job Application Tracker</h1>
+            </div>
+            <div class="last-updated">Last updated: <span id="lastUpdated">--</span></div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card total">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-card applied">
+                <div class="stat-value" id="statApplied">0</div>
+                <div class="stat-label">Applied</div>
+            </div>
+            <div class="stat-card interview">
+                <div class="stat-value" id="statInterview">0</div>
+                <div class="stat-label">Interview</div>
+            </div>
+            <div class="stat-card offer">
+                <div class="stat-value" id="statOffer">0</div>
+                <div class="stat-label">Offers</div>
+            </div>
+            <div class="stat-card rejected">
+                <div class="stat-value" id="statRejected">0</div>
+                <div class="stat-label">Rejected</div>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="🔍 Search by Company, Title, Status..." onkeyup="filterApplications()">
+        </div>
+
+        <!-- Your Applied Jobs -->
+        <div class="section" id="appliedSection">
+            <div class="section-header">
+                <div class="section-title">📋 Your Applications</div>
+            </div>
+            <div class="table-wrapper" id="appliedTable">
+                <div class="empty-state"><div class="empty-icon">📋</div><div>No applications yet</div></div>
+            </div>
+        </div>
+
+        <!-- Follow-ups -->
+        <div class="section" id="followUpSection">
+            <div class="section-header">
+                <div class="section-title">🔔 Follow-ups</div>
+            </div>
+            <div class="table-wrapper" id="followUpTable">
+                <div class="empty-state"><div class="empty-icon">✅</div><div>No follow-ups due</div></div>
+            </div>
+        </div>
+
+        <!-- Quick Add -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">Quick Add Application</div>
+            </div>
+            <div class="quick-add">
+                <input type="text" id="quickCompany" placeholder="Company name">
+                <input type="text" id="quickTitle" placeholder="Job title">
+                <input type="text" id="quickLink" placeholder="Job post link (optional)">
+                <button class="btn btn-primary" onclick="quickAdd()">Add</button>
+            </div>
+        </div>
+
+        <!-- Pending Jobs from LinkedIn -->
+        <div class="section" id="pendingJobsSection">
+            <div class="section-header">
+                <div class="section-title" id="availableJobsTitle">🎯 Available Jobs</div>
+                <span class="btn btn-outline btn-sm" onclick="loadPendingJobs()">🔄 Refresh</span>
+            </div>
+            <div class="table-wrapper" id="pendingJobsTable">
+                <div class="empty-state"><div class="empty-icon">⏳</div><div>Loading...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Add Application</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="applicationForm">
+                    <input type="hidden" id="editIndex" value="-1">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" id="company" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" id="title" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date Applied</label>
+                            <input type="date" id="dateApplied" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="Applied">Applied</option>
+                                <option value="Phone Screen">Phone Screen</option>
+                                <option value="Interview">Interview</option>
+                                <option value="Offer">Offer</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Withdrawn">Withdrawn</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact</label>
+                            <input type="text" id="contact" placeholder="Name, Role, Email">
+                        </div>
+                        <div class="form-group">
+                            <label>Follow-up Date</label>
+                            <input type="date" id="followUp">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="notes" placeholder="Interview details, salary, etc."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveApplication()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let applications = [];
+        let pendingJobs = [];
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            loadPendingJobs();
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch('/api/applications');
+                const data = await response.json();
+                applications = data.applications || [];
+                renderAll();
+            } catch (e) {
+                console.error('Failed to load:', e);
+            }
+        }
+
+        function renderAll() {
+            renderStats();
+            renderAppliedSection();
+            renderFollowUps();
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+        }
+
+        function renderStats() {
+            const stats = {
+                total: applications.length,
+                applied: applications.filter(a => a.status === 'Applied').length,
+                phone: applications.filter(a => a.status === 'Phone Screen').length,
+                interview: applications.filter(a => a.status === 'Interview').length,
+                offer: applications.filter(a => a.status === 'Offer').length,
+                rejected: applications.filter(a => a.status === 'Rejected').length
+            };
+
+            document.getElementById('statTotal').textContent = stats.total;
+            document.getElementById('statApplied').textContent = stats.applied + stats.phone + stats.interview;
+            document.getElementById('statInterview').textContent = stats.interview;
+            document.getElementById('statOffer').textContent = stats.offer;
+            document.getElementById('statRejected').textContent = stats.rejected;
+        }
+
+        function renderAppliedSection() {
+            const container = document.getElementById('appliedTable');
+            
+            if (applications.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>No applications yet</div></div>';
+                return;
+            }
+
+            // Sort by date descending
+            const sorted = [...applications].sort((a, b) => b.date.localeCompare(a.date));
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Company</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Follow-up</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map((app, idx) => {
+                            const followUpClass = getFollowUpClass(app.followUp);
+                            const titleHtml = app.source && app.source.startsWith('http')
+                                ? `<a href="${app.source}" target="_blank" title="${app.source}">${app.title.substring(0, 35)}${app.title.length > 35 ? '...' : ''}</a>`
+                                : app.title.substring(0, 35) + (app.title.length > 35 ? '...' : '');
+                            return `
+                                <tr>
+                                    <td>${app.date}</td>
+                                    <td><strong>${app.company}</strong></td>
+                                    <td>${titleHtml}</td>
+                                    <td><span class="status status-${app.status.toLowerCase().replace(' ', '')}"><span class="status-dot"></span>${app.status}</span></td>
+                                    <td class="${followUpClass}">${app.followUp || '-'}</td>
+                                    <td class="actions">
+                                        <button class="btn-icon" onclick="updateStatus(${applications.indexOf(app)})" title="Update Status">🔄</button>
+                                        <button class="btn-icon" onclick="deleteApplication(${applications.indexOf(app)})" title="Delete">🗑️</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            // Update section header with count
+            document.querySelector('#appliedSection .section-title').textContent = `📋 Your Applications (${applications.length} Applied)`;
+        }
+
+        function renderFollowUps() {
+            const container = document.getElementById('followUpTable');
+            if (!container) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            const soon = new Date();
+            soon.setDate(soon.getDate() + 3);
+            const soonStr = soon.toISOString().split('T')[0];
+
+            const due = applications
+                .map((app, idx) => ({ ...app, _idx: idx }))
+                .filter(app => {
+                    if (!app.followUp || app.status === 'Rejected' || app.status === 'Withdrawn' || app.status === 'Offer') return false;
+                    return app.followUp <= soonStr;
+                })
+                .sort((a, b) => a.followUp.localeCompare(b.followUp));
+
+            if (due.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>No follow-ups due in the next 3 days</div></div>';
+                document.querySelector('#followUpSection .section-title').textContent = '🔔 Follow-ups';
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Follow-up</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${due.map(app => {
+                            const cls = getFollowUpClass(app.followUp);
+                            const label = app.followUp < today  ? '🔴 Overdue'
+                                        : app.followUp === today ? '🟡 Today'
+                                        :                          '🔵 Upcoming';
+                            return `
+                                <tr>
+                                    <td><strong>${app.company}</strong></td>
+                                    <td>${app.title}</td>
+                                    <td><span class="status status-${app.status.toLowerCase().replace(' ', '')}"><span class="status-dot"></span>${app.status}</span></td>
+                                    <td class="${cls}">${label} · ${app.followUp}</td>
+                                    <td class="actions">
+                                        <button class="btn btn-outline btn-sm" onclick="markInterview(${app._idx})">📅 Interview</button>
+                                        <button class="btn btn-outline btn-sm" onclick="markRejected(${app._idx})">❌ Rejected</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.querySelector('#followUpSection .section-title').textContent = `🔔 Follow-ups (${due.length})`;
+        }
+
+        function getFollowUpClass(followUp) {
+            if (!followUp) return 'followup-ok';
+            const today = new Date().toISOString().split('T')[0];
+            if (followUp < today)   return 'followup-overdue';
+            if (followUp === today) return 'followup-due';
+            const soon = new Date();
+            soon.setDate(soon.getDate() + 3);
+            if (followUp <= soon.toISOString().split('T')[0]) return 'followup-upcoming';
+            return 'followup-ok';
+        }
+
+        // Search Filter Function
+        function filterApplications() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            
+            // Filter Applied Section
+            const appliedTable = document.getElementById('appliedTable');
+            const appliedTR = appliedTable.getElementsByTagName('tr');
+            for (let i = 1; i < appliedTR.length; i++) { // Skip header
+                const textContent = appliedTR[i].textContent || appliedTR[i].innerText;
+                appliedTR[i].style.display = textContent.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
+
+            // Filter Follow-up Section
+            const followUpTable = document.getElementById('followUpTable');
+            const followUpTR = followUpTable.getElementsByTagName('tr');
+            for (let i = 1; i < followUpTR.length; i++) {
+                const textContent = followUpTR[i].textContent || followUpTR[i].innerText;
+                followUpTR[i].style.display = textContent.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+
+        // Modal functions
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Add Application';
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('applicationForm').reset();
+            document.getElementById('dateApplied').value = new Date().toISOString().split('T')[0];
+            const defaultFollowUp = new Date();
+            defaultFollowUp.setDate(defaultFollowUp.getDate() + 14);
+            document.getElementById('followUp').value = defaultFollowUp.toISOString().split('T')[0];
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function saveApplication() {
+            const app = {
+                company: document.getElementById('company').value,
+                title: document.getElementById('title').value,
+                date: document.getElementById('dateApplied').value,
+                status: document.getElementById('status').value,
+                contact: document.getElementById('contact').value,
+                followUp: document.getElementById('followUp').value,
+                notes: document.getElementById('notes').value,
+                source: 'Manual'
+            };
+
+            if (!app.company || !app.title || !app.date) {
+                alert('Please fill in required fields');
+                return;
+            }
+
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+            
+            try {
+                const response = await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: editIndex >= 0 ? editIndex : -1 })
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadData();
+                } else {
+                    alert('Failed to save');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function quickAdd() {
+            const company = document.getElementById('quickCompany').value;
+            const title = document.getElementById('quickTitle').value;
+            const link = document.getElementById('quickLink').value;
+            
+            if (!company || !title) {
+                alert('Please enter company and title');
+                return;
+            }
+
+            const followUpDate = new Date();
+            followUpDate.setDate(followUpDate.getDate() + 14);
+
+            const app = {
+                company,
+                title,
+                date: new Date().toISOString().split('T')[0],
+                status: 'Applied',
+                contact: '',
+                followUp: followUpDate.toISOString().split('T')[0],
+                notes: '',
+                source: link || 'Manual'
+            };
+
+            try {
+                const response = await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: -1 })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('quickCompany').value = '';
+                    document.getElementById('quickTitle').value = '';
+                    document.getElementById('quickLink').value = '';
+                    loadData();
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function editApplication(idx) {
+            const app = applications[idx];
+            document.getElementById('editIndex').value = idx;
+            document.getElementById('modalTitle').textContent = 'Edit Application';
+            document.getElementById('company').value = app.company;
+            document.getElementById('title').value = app.title;
+            document.getElementById('dateApplied').value = app.date;
+            document.getElementById('status').value = app.status;
+            document.getElementById('contact').value = app.contact || '';
+            document.getElementById('followUp').value = app.followUp || '';
+            document.getElementById('notes').value = app.notes || '';
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        async function updateStatus(idx) {
+            const app = applications[idx];
+            const statuses = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected', 'Withdrawn'];
+            const currentIdx = statuses.indexOf(app.status);
+            const nextStatus = statuses[(currentIdx + 1) % statuses.length];
+            
+            app.status = nextStatus;
+            
+            try {
+                await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: idx })
+                });
+                loadData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function deleteApplication(idx) {
+            if (!confirm('Delete this application?')) return;
+            
+            try {
+                await fetch('/api/applications', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index: idx })
+                });
+                loadData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function markInterview(idx) {
+            const followUpDate = new Date();
+            followUpDate.setDate(followUpDate.getDate() + 7);
+            applications[idx].status = 'Interview';
+            applications[idx].followUp = followUpDate.toISOString().split('T')[0];
+            await saveAppDirect(idx);
+        }
+
+        async function markRejected(idx) {
+            applications[idx].status = 'Rejected';
+            await saveAppDirect(idx);
+        }
+
+        async function saveAppDirect(idx) {
+            try {
+                await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: applications[idx], index: idx })
+                });
+                loadData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function loadPendingJobs() {
+            try {
+                const response = await fetch('/api/pending-jobs');
+                const data = await response.json();
+                pendingJobs = data.jobs || [];
+                
+                const titleEl = document.getElementById('availableJobsTitle');
+                if (titleEl && data.date) {
+                    const [year, month, day] = data.date.split('-');
+                    titleEl.textContent = `🎯 Available Jobs ${day}-${month}-${year} (Brossard First → Ranked by Fit)`;
+                }
+                
+                renderPendingJobs();
+            } catch (e) {
+                console.error('Failed to load pending jobs:', e);
+            }
+        }
+
+        function renderPendingJobs() {
+            const container = document.getElementById('pendingJobsTable');
+            
+            if (pendingJobs.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>No pending jobs</div></div>';
+                return;
+            }
+
+            const dateGroups = {
+                0: { label: '📅 Today', jobs: [] },
+                1: { label: '📅 Yesterday', jobs: [] },
+                2: { label: '📅 This Week', jobs: [] },
+                3: { label: '📅 Older', jobs: [] }
+            };
+            
+            pendingJobs.forEach(job => {
+                const bucket = job.date_bucket !== undefined ? job.date_bucket : 3;
+                if (dateGroups[bucket]) {
+                    dateGroups[bucket].jobs.push(job);
+                } else {
+                    dateGroups[3].jobs.push(job);
+                }
+            });
+            
+            let html = '';
+            const bucketOrder = [0, 1, 2, 3];
+            
+            bucketOrder.forEach(bucket => {
+                const group = dateGroups[bucket];
+                if (group.jobs.length === 0) return;
+                
+                const sortedJobs = group.jobs.sort((a, b) => {
+                    if (a.priority !== b.priority) return a.priority - b.priority;
+                    return b.fit - a.fit;
+                });
+                
+                html += `
+                <div class="date-section">
+                    <div class="date-section-header">${group.label} (${sortedJobs.length})</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fit</th>
+                                <th>Title</th>
+                                <th>Company</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedJobs.map(job => {
+                                const fitBadge = job.fit >= 30 ? '⭐' + job.fit : (job.fit >= 15 ? '✓' + job.fit : job.fit);
+                                const easyApplyButton = job.easy_apply ? `<a href="${job.link}" target="_blank" class="btn btn-outline btn-sm">Easy Apply</a>` : '';
+                                return `
+                                    <tr>
+                                        <td>${job.num}</td>
+                                        <td><strong>${fitBadge}</strong></td>
+                                        <td>${job.title.substring(0, 35)}${job.title.length > 35 ? '...' : ''}</td>
+                                        <td><strong>${job.company}</strong></td>
+                                        <td>${job.location.split(',')[0]}</td>
+                                        <td class="actions">
+                                            <a href="${job.link}" target="_blank" class="btn btn-primary btn-sm">Apply</a>
+                                            ${easyApplyButton}
+                                            <button class="btn btn-outline btn-sm" onclick="addJobToTracker(${job.num})">Applied</button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function addJobToTracker(jobNum) {
+            const job = pendingJobs.find(j => j.num === jobNum);
+            if (!job) return;
+
+            const followUpDate = new Date();
+            followUpDate.setDate(followUpDate.getDate() + 14);
+
+            const app = {
+                date: new Date().toISOString().split('T')[0],
+                company: job.company,
+                title: job.title,
+                source: job.link,
+                status: 'Applied',
+                contact: '',
+                followUp: followUpDate.toISOString().split('T')[0],
+                notes: `Fit: ${job.fit}, ${job.area}`
+            };
+
+            try {
+                await fetch('/api/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: app, index: -1 })
+                });
+                
+                await loadData();
+                await loadPendingJobs();
+                
+                alert(`Added: ${job.company} - ${job.title}`);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

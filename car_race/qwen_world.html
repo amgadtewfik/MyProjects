@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Racing Game</title>
+<style>
+    body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .hud-panel { position: absolute; background: rgba(0,0,0,0.6); color: #fff; padding: 10px; border-radius: 8px; pointer-events: auto; border: 1px solid #444; }
+    #speedometer { bottom: 20px; right: 20px; width: 160px; height: 160px; }
+    #minimap { bottom: 20px; left: 20px; width: 220px; height: 160px; }
+    #lap-info { top: 20px; right: 20px; text-align: right; min-width: 150px; }
+    #garage-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; pointer-events: auto; z-index: 10; }
+    .car-card { border: 2px solid #444; padding: 20px; margin: 10px; background: #222; cursor: pointer; transition: 0.3s; width: 250px; text-align: center; }
+    .car-card:hover, .car-card.selected { border-color: #0f0; background: #333; }
+    .stat-bar { height: 10px; background: #444; margin-top: 5px; border-radius: 5px; overflow: hidden; }
+    .stat-fill { height: 100%; background: #0f0; width: 0%; transition: width 0.3s; }
+    button#start-race-btn { padding: 15px 30px; font-size: 18px; margin-top: 20px; cursor: pointer; background: #0f0; color: #000; border: none; border-radius: 5px; font-weight: bold; }
+    button#start-race-btn:hover { background: #0c0; }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="ui-layer">
+    <div id="lap-info" class="hud-panel">
+        <div>Lap: <span id="lap-num">1</span>/3</div>
+        <div>Time: <span id="lap-time">0:00.00</span></div>
+        <div>Best: <span id="best-lap">0:00.00</span></div>
+    </div>
+    <canvas id="speedometer" class="hud-panel"></canvas>
+    <canvas id="minimap" class="hud-panel"></canvas>
+</div>
+
+<div id="garage-screen">
+    <h1>GARAGE</h1>
+    <p>Select your car:</p>
+    <div id="car-list"></div>
+    <button id="start-race-btn">START RACE</button>
+</div>
+
+<script>
+// --- SETUP & CONSTANTS ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    initMinimapCanvas();
+    initSpeedometerCanvas();
+});
+
+const SEGMENT_LENGTH = 200;
+const RUMBLE_LENGTH = 3;
+const ROAD_WIDTH = 2000;
+const LANES = 3;
+const DRAW_DISTANCE = 250;
+const TRACK_SEGMENTS_COUNT = 250; 
+
+let segments = [];
+let cameraX = 0, cameraY = 1500, cameraZ = 0;
+let cameraDepth = 0.6;
+
+// --- ROAD GENERATION ---
+function generateTrack() {
+    segments = [];
+    for(let i=0; i<TRACK_SEGMENTS_COUNT; i++) {
+        let t = i / TRACK_SEGMENTS_COUNT;
+        // Curves and hills using sine combinations
+        let curve = Math.sin(i * 0.08) * 4 + Math.sin(i * 0.23) * 2;
+        let height = Math.sin(i * 0.05) * 600 + Math.sin(i * 0.15) * 300;
+
+        segments.push({
+            index: i,
+            p1: { world: { z: i * SEGMENT_LENGTH, x: 0, y: height }, camera: {}, screen: {} },
+            p2: { world: { z: (i+1) * SEGMENT_LENGTH, x: 0, y: height }, camera: {}, screen: {} },
+            curve: curve,
+            color: {
+                road: Math.floor(i/RUMBLE_LENGTH)%2 === 0 ? '#444' : '#3a3a3a',
+                grass: Math.floor(i/RUMBLE_LENGTH)%2 === 0 ? '#2a8a2a' : '#257a25',
+                rumble: Math.floor(i/RUMBLE_LENGTH)%2 === 0 ? '#c33' : '#ccc',
+                lane: Math.floor((i/15)/2)%2 === 0 ? 'rgba(255,255,255,0.6)' : 'transparent'
+            }
+        });
+    }
+}
+generateTrack();
+
+// --- PROJECTION ---
+function project(p, cameraX, cameraY, cameraZ, cameraDepth, w, h, roadWidth, loopedAdjustment) {
+    if (!p.camera) p.camera = {};
+    if (!p.screen) p.screen = {};
+    
+    let worldZ = (p.world.z || 0);
+    if(loopedAdjustment !== undefined) {
+        worldZ += loopedAdjustment;
+    }
+    
+    p.camera.x = (p.world.x || 0) - cameraX;
+    p.camera.y = (p.world.y || 0) - cameraY;
+    p.camera.z = worldZ - cameraZ;
+    if(p.camera.z < 1) p.camera.z = 1;
+    p.screen.scale = cameraDepth / p.camera.z;
+    p.screen.x = Math.round((w / 2) + (p.screen.scale * p.camera.x * (w / 2)));
+    p.screen.y = Math.round((h / 2) - (p.screen.scale * p.camera.y * (h / 2)));
+    p.screen.w = Math.round((p.screen.scale * roadWidth * (w / 2)));
+}
+
+// --- RENDER ROAD ---
+function renderRoad() {
+    // Sky gradient changing color
+    let time = Date.now() / 15000;
+    let r = Math.sin(time) * 60 + 90;
+    let g = Math.sin(time + 2.1) * 40 + 80;
+    let b = Math.sin(time + 4.1) * 60 + 140;
+    let skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+    skyGrad.addColorStop(0, `rgb(${Math.max(0,r-30)},${Math.max(0,g-30)},${Math.max(0,b-70)})`);
+    skyGrad.addColorStop(1, `rgb(${r},${g},${b})`);
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Parallax Mountains & Buildings
+    renderParallax();
+
+    let playerSegmentIndex = Math.floor(player.positionZ / SEGMENT_LENGTH) % TRACK_SEGMENTS_COUNT;
+    if(playerSegmentIndex < 0) playerSegmentIndex += TRACK_SEGMENTS_COUNT;
+    let baseSegment = segments[playerSegmentIndex];
+
+    // Accumulate curve and x offset
+    let dx = -baseSegment.curve * ((player.positionZ % SEGMENT_LENGTH) / SEGMENT_LENGTH);
+    let x = 0;
+
+    let maxy = height;
+
+    for(let n=0; n<DRAW_DISTANCE; n++) {
+        let segmentIndex = (playerSegmentIndex + n) % TRACK_SEGMENTS_COUNT;
+        if(segmentIndex < 0) segmentIndex += TRACK_SEGMENTS_COUNT;
+        let segment = segments[segmentIndex];
+        segment.looped = segmentIndex < playerSegmentIndex;
+
+        // Adjust Z for looped segments
+        let cameraZ = player.positionZ - 600;
+        let p1camZ = segment.p1.world.z - cameraZ + (segment.looped ? TRACK_SEGMENTS_COUNT * SEGMENT_LENGTH : 0);
+        let p2camZ = segment.p2.world.z - cameraZ + (segment.looped ? TRACK_SEGMENTS_COUNT * SEGMENT_LENGTH : 0);
+
+        if(p1camZ <= 0 || p2camZ <= 0) continue;
+
+        project(segment.p1, cameraX - x, 1500 + baseSegment.p1.world.y, player.positionZ - 600, cameraDepth, width, height, ROAD_WIDTH, segment.looped ? TRACK_SEGMENTS_COUNT * SEGMENT_LENGTH : 0);
+        
+        dx += segment.curve;
+        x += dx;
+
+        project(segment.p2, cameraX - (x+dx), 1500 + baseSegment.p2.world.y, player.positionZ - 600, cameraDepth, width, height, ROAD_WIDTH, segment.looped ? TRACK_SEGMENTS_COUNT * SEGMENT_LENGTH : 0);
+
+        let p1 = segment.p1;
+        let p2 = segment.p2;
+
+        if(p1.screen.y >= maxy && p2.screen.y >= maxy) continue;
+        
+        // Draw grass
+        ctx.fillStyle = segment.color.grass;
+        ctx.fillRect(0, p2.screen.y, width, p1.screen.y - p2.screen.y);
+
+        // Draw road
+        let r1 = p1.screen.w / 2;
+        let r2 = p2.screen.w / 2;
+        
+        // Road trapezoid
+        ctx.fillStyle = segment.color.road;
+        ctx.beginPath();
+        ctx.moveTo(p1.screen.x - r1, p1.screen.y);
+        ctx.lineTo(p1.screen.x + r1, p1.screen.y);
+        ctx.lineTo(p2.screen.x + r2, p2.screen.y);
+        ctx.lineTo(p2.screen.x - r2, p2.screen.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Rumble strips
+        ctx.fillStyle = segment.color.rumble;
+        let w1 = r1 * 0.15;
+        let w2 = r2 * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(p1.screen.x - r1 - w1, p1.screen.y);
+        ctx.lineTo(p1.screen.x - r1, p1.screen.y);
+        ctx.lineTo(p2.screen.x - r2, p2.screen.y);
+        ctx.lineTo(p2.screen.x - r2 - w2, p2.screen.y);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(p1.screen.x + r1, p1.screen.y);
+        ctx.lineTo(p1.screen.x + r1 + w1, p1.screen.y);
+        ctx.lineTo(p2.screen.x + r2 + w2, p2.screen.y);
+        ctx.lineTo(p2.screen.x + r2, p2.screen.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Lane markers
+        if(segment.color.lane !== 'transparent') {
+            let laneW1 = r1 * 0.05;
+            let laneW2 = r2 * 0.05;
+            ctx.fillStyle = segment.color.lane;
+            for(let l=1; l<LANES; l++) {
+                let lx1 = p1.screen.x - r1 + (r1*2/lanesRatio(l)); // simplified center lanes
+                // Actually simpler: 3 lanes -> 2 lines. 
+                // Let's just do center line and side lines if needed, or simple alternating
+            }
+        }
+
+        maxy = p2.screen.y;
+    }
+}
+
+function lanesRatio(l) {
+    return (LANES - l) / LANES * 2 + 1; 
+}
+
+// --- PARALLAX BACKGROUND ---
+function renderParallax() {
+    let time = Date.now() / 20000;
+    let mountainOffset = player.positionZ * 0.05;
+    
+    // Distant Mountains
+    ctx.fillStyle = 'rgba(60,40,80,0.7)';
+    for(let i=0; i<width; i+=40) {
+        let h = Math.sin((i + mountainOffset) * 0.01) * 150 + 200;
+        ctx.beginPath();
+        ctx.moveTo(i, height);
+        ctx.lineTo(i + 20, height - h);
+        ctx.lineTo(i + 40, height);
+        ctx.fill();
+    }
+
+    // Hills on the sides (medium distance)
+    let hillOffset = player.positionZ * 0.15;
+    
+    // Left side hills
+    ctx.fillStyle = 'rgba(34, 100, 34, 0.8)';
+    for(let i=0; i<width*0.4; i+=30) {
+        let h = Math.sin((i + hillOffset) * 0.02) * 80 + 120;
+        let hy = height - 100;
+        ctx.beginPath();
+        ctx.moveTo(i, hy);
+        ctx.quadraticCurveTo(i + 15, hy - h, i + 30, hy);
+        ctx.fill();
+    }
+    
+    // Right side hills
+    for(let i=width*0.6; i<width; i+=30) {
+        let h = Math.sin((i + hillOffset) * 0.025) * 100 + 140;
+        let hy = height - 80;
+        ctx.beginPath();
+        ctx.moveTo(i, hy);
+        ctx.quadraticCurveTo(i + 15, hy - h, i + 30, hy);
+        ctx.fill();
+    }
+
+    // Trees on the sides of the road (closer to camera)
+    let treeOffset = player.positionZ * 0.3;
+    
+    // Left side trees
+    for(let i=0; i<width*0.45; i+=80) {
+        let t = ((i + treeOffset) % 160);
+        if(t > 20 && t < 140) {
+            let treeScale = 0.8 + Math.sin(i * 0.5) * 0.2;
+            let treeH = 40 * treeScale;
+            let treeY = height - 60;
+            
+            // Tree trunk
+            ctx.fillStyle = '#4a3018';
+            ctx.fillRect(i - 5, treeY - treeH * 0.4, 10, treeH * 0.4);
+            
+            // Tree foliage (triangle)
+            ctx.fillStyle = '#2d6e2d';
+            ctx.beginPath();
+            ctx.moveTo(i - 20 * treeScale, treeY - treeH * 0.4);
+            ctx.lineTo(i, treeY - treeH);
+            ctx.lineTo(i + 20 * treeScale, treeY - treeH * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Second layer of foliage
+            ctx.fillStyle = '#3a8a3a';
+            ctx.beginPath();
+            ctx.moveTo(i - 15 * treeScale, treeY - treeH * 0.7);
+            ctx.lineTo(i, treeY - treeH * 1.2);
+            ctx.lineTo(i + 15 * treeScale, treeY - treeH * 0.7);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+    
+    // Right side trees
+    for(let i=width*0.55; i<width; i+=80) {
+        let t = ((i + treeOffset) % 160);
+        if(t > 20 && t < 140) {
+            let treeScale = 0.8 + Math.sin(i * 0.3) * 0.2;
+            let treeH = 45 * treeScale;
+            let treeY = height - 60;
+            
+            // Tree trunk
+            ctx.fillStyle = '#4a3018';
+            ctx.fillRect(i - 5, treeY - treeH * 0.4, 10, treeH * 0.4);
+            
+            // Tree foliage (triangle)
+            ctx.fillStyle = '#2d6e2d';
+            ctx.beginPath();
+            ctx.moveTo(i - 20 * treeScale, treeY - treeH * 0.4);
+            ctx.lineTo(i, treeY - treeH);
+            ctx.lineTo(i + 20 * treeScale, treeY - treeH * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Second layer of foliage
+            ctx.fillStyle = '#3a8a3a';
+            ctx.beginPath();
+            ctx.moveTo(i - 15 * treeScale, treeY - treeH * 0.7);
+            ctx.lineTo(i, treeY - treeH * 1.2);
+            ctx.lineTo(i + 15 * treeScale, treeY - treeH * 0.7);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+}
+
+// --- PLAYER & PHYSICS ---
+let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+window.addEventListener('keydown', e => { if(keys.hasOwnProperty(e.code)) keys[e.code] = true; });
+window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.code)) keys[e.code] = false; });
+
+let player = {
+    x: 0,
+    positionZ: 0,
+    speed: 0,
+    maxSpeed: 0,
+    acceleration: 0,
+    handling: 0,
+    lap: 1,
+    lastLapStart: 0,
+    bestLapTime: Infinity,
+    currentLapTime: 0
+};
+
+let selectedCar = null;
+const cars = [
+    { name: "Speedster", speed: 28000, accel: 6000, handling: 4500, color: '#f33' },
+    { name: "Balanced", speed: 24000, accel: 5000, handling: 5000, color: '#3af' },
+    { name: "Tank", speed: 20000, accel: 4000, handling: 6000, color: '#3f3' }
+];
+
+// --- AI OPPONENTS ---
+let opponents = [];
+function initOpponents() {
+    opponents = [];
+    for(let i=0; i<5; i++) {
+        opponents.push({
+            z: 2000 + i * 3000,
+            x: (Math.random() - 0.5) * 0.6 * ROAD_WIDTH,
+            speed: 15000 + Math.random() * 4000,
+            color: `hsl(${Math.random()*360},70%,50%)`
+        });
+    }
+}
+
+// --- GAME LOOP ---
+let lastTime = 0;
+let trackLen = 0;
+function gameLoop(timestamp) {
+    let dt = (timestamp - lastTime) / 1000;
+    if(dt > 0.05) dt = 0.05; // cap dt
+    lastTime = timestamp;
+
+    if(document.getElementById('garage-screen').style.display !== 'none') {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    // Player physics
+    let accelRate = player.acceleration;
+    let decelRate = player.speed * 0.6; // friction
+    let maxS = player.maxSpeed;
+
+    if(keys.ArrowUp) {
+        player.speed += accelRate * dt;
+    } else if(keys.ArrowDown) {
+        player.speed -= accelRate * 2 * dt;
+    } else {
+        if(player.speed > 0) player.speed -= decelRate * dt;
+        else player.speed = 0;
+    }
+
+    if(player.speed < 0) player.speed = 0;
+    if(player.speed > maxS) player.speed = maxS;
+
+    let steerSpeed = player.handling * (player.speed/maxS + 0.3) * dt;
+    if(keys.ArrowLeft) player.x -= steerSpeed;
+    if(keys.ArrowRight) player.x += steerSpeed;
+
+    // Clamp x
+    if(player.x < -2*ROAD_WIDTH) player.x = -2*ROAD_WIDTH;
+    if(player.x > 2*ROAD_WIDTH) player.x = 2*ROAD_WIDTH;
+
+    player.positionZ += player.speed * dt;
+    
+    trackLen = TRACK_SEGMENTS_COUNT * SEGMENT_LENGTH;
+    while(player.positionZ >= trackLen) {
+        player.positionZ -= trackLen;
+        player.lap++;
+        if(player.currentLapTime > 0 && (player.lastLapStart === 0 || player.positionZ < 1000)) {
+             // lap completed logic handled by checkpoint
+        }
+        updateLapUI();
+    }
+
+    // Opponents update
+    for(let op of opponents) {
+        op.z += op.speed * dt;
+        if(op.z >= trackLen) op.z -= trackLen;
+    }
+
+    renderRoad();
+    renderPlayerCar();
+    renderOpponents();
+    renderSpeedometer();
+    renderMinimap();
+
+    // Lap timing logic
+    let segIdx = Math.floor(player.positionZ / SEGMENT_LENGTH);
+    if(segIdx < 10 && player.lastLapStart === 0) {
+        player.lastLapStart = Date.now();
+    } else if (segIdx >= TRACK_SEGMENTS_COUNT - 5 && player.lastLapStart > 0) {
+        let now = Date.now();
+        let lapTime = (now - player.lastLapStart) / 1000;
+        if(lapTime < player.bestLapTime || player.bestLapTime === Infinity) {
+            player.bestLapTime = lapTime;
+        }
+        player.currentLapTime = lapTime;
+        player.lastLapStart = 0;
+        updateLapUI();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// --- RENDER PLAYER CAR ---
+function renderPlayerCar() {
+    // Car at bottom center
+    let carW = 120;
+    let carH = 60;
+    let cx = width / 2;
+    let cy = height - 20;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(cx - carW/2 + 10, cy - carH + 10, carW, carH);
+
+    // Car body
+    ctx.fillStyle = selectedCar ? selectedCar.color : '#f33';
+    ctx.fillRect(cx - carW/2, cy - carH, carW, carH);
+    
+    // Car details (windshield)
+    ctx.fillStyle = '#88aaff';
+    ctx.fillRect(cx - carW/2 + 10, cy - carH + 15, carW - 20, 25);
+    
+    // Wheels
+    ctx.fillStyle = '#111';
+    ctx.fillRect(cx - carW/2 - 5, cy - 15, 15, 20);
+    ctx.fillRect(cx + carW/2 - 10, cy - 15, 15, 20);
+}
+
+// --- RENDER OPPONENTS ---
+function renderOpponents() {
+    for(let op of opponents) {
+        let opSegIdx = Math.floor(op.z / SEGMENT_LENGTH);
+        if(opSegIdx < 0) opSegIdx += TRACK_SEGMENTS_COUNT;
+        let segment = segments[opSegIdx % TRACK_SEGMENTS_COUNT];
+        
+        // Project opponent position to screen
+        let cameraZ = player.positionZ - 600;
+        let oz = op.z - cameraZ + (op.z < player.positionZ ? 0 : (op.z >= trackLen && player.positionZ < 1000 ? TRACK_SEGMENTS_COUNT * SEGMENT_LENGTH : 0));
+        
+        if(oz < 1) continue; // too far or behind
+
+        let scale = cameraDepth / oz;
+        let sx = Math.round((width / 2) + (scale * op.x * (width / 2)));
+        let sy = Math.round((height / 2) - (scale * (segment.p1.world.y || 0) * (height / 2)) + 50*scale); // approximate height
+
+        if(sy > height || sy < 0) continue;
+
+        let opW = 80 * scale * 4;
+        let opH = 40 * scale * 4;
+        
+        ctx.fillStyle = op.color;
+        ctx.fillRect(sx - opW/2, sy - opH, opW, opH);
+        // Opponent windshield
+        ctx.fillStyle = 'rgba(150,200,255,0.7)';
+        ctx.fillRect(sx - opW/2 + 5*scale*4, sy - opH + 8*scale*4, opW - 10*scale*4, 15*scale*4);
+    }
+}
+
+// --- SPEEDOMETER & RPM GAUGE ---
+let speedoCanvas, speedoCtx;
+let minimapCanvas, minimapCtx;
+
+function initSpeedometerCanvas() {
+    speedoCanvas = document.getElementById('speedometer');
+    speedoCanvas.width = 160;
+    speedoCanvas.height = 160;
+    speedoCtx = speedoCanvas.getContext('2d');
+}
+
+function initMinimapCanvas() {
+    minimapCanvas = document.getElementById('minimap');
+    minimapCanvas.width = 220;
+    minimapCanvas.height = 160;
+    minimapCtx = minimapCanvas.getContext('2d');
+}
+
+initSpeedometerCanvas();
+initMinimapCanvas();
+
+function renderSpeedometer() {
+    if(!speedoCtx) return;
+    let w = speedoCanvas.width;
+    let h = speedoCanvas.height;
+    let cx = w/2, cy = h/2 + 10;
+    let r = w/2 - 15;
+
+    speedoCtx.clearRect(0, 0, w, h);
+
+    // Gauge background
+    speedoCtx.beginPath();
+    speedoCtx.arc(cx, cy, r, 0.8*Math.PI, 2.2*Math.PI);
+    speedoCtx.lineWidth = 10;
+    speedoCtx.strokeStyle = '#333';
+    speedoCtx.stroke();
+
+    // RPM gauge arc colors
+    let speedRatio = player.speed / player.maxSpeed;
+    let rpm = speedRatio * 8000;
+    
+    // Speedometer number
+    let kmh = Math.round((player.speed / 28000) * 300);
+    
+    speedoCtx.fillStyle = '#fff';
+    speedoCtx.font = '24px Arial';
+    speedoCtx.textAlign = 'center';
+    speedoCtx.fillText(kmh + ' km/h', cx, cy + 5);
+
+    // RPM arc
+    let rpmAngle = 0.8*Math.PI + (speedRatio * 1.4*Math.PI);
+    speedoCtx.beginPath();
+    speedoCtx.arc(cx, cy, r - 15, 0.8*Math.PI, rpmAngle);
+    speedoCtx.lineWidth = 6;
+    
+    let grad = speedoCtx.createLinearGradient(0, 0, w, h);
+    if(speedRatio < 0.7) {
+        grad.addColorStop(0, '#0f0');
+        grad.addColorStop(1, '#0f0');
+    } else if (speedRatio < 0.9) {
+        grad.addColorStop(0, '#ff0');
+        grad.addColorStop(1, '#ff0');
+    } else {
+        grad.addColorStop(0, '#f00');
+        grad.addColorStop(1, '#f00');
+    }
+    speedoCtx.strokeStyle = grad;
+    speedoCtx.stroke();
+
+    // RPM text
+    speedoCtx.fillStyle = rpmAngle > 0.8*Math.PI + 0.7*1.4*Math.PI ? '#f33' : '#fff';
+    speedoCtx.font = '14px Arial';
+    speedoCtx.fillText('RPM: ' + Math.round(rpm), cx, cy + 25);
+}
+
+// --- MINIMAP ---
+function renderMinimap() {
+    if(!minimapCtx) return;
+    let w = minimapCanvas.width;
+    let h = minimapCanvas.height;
+    minimapCtx.clearRect(0, 0, w, h);
+
+    // Draw track path
+    minimapCtx.beginPath();
+    minimapCtx.strokeStyle = '#555';
+    minimapCtx.lineWidth = 4;
+    let mapScale = 0.6;
+    let mapOffsetX = w/2;
+    let mapOffsetY = h/2;
+
+    for(let i=0; i<TRACK_SEGMENTS_COUNT; i+=5) {
+        let seg = segments[i % TRACK_SEGMENTS_COUNT];
+        let sx = mapOffsetX + Math.sin(i*0.1)*30 * mapScale;
+        let sy = (i / TRACK_SEGMENTS_COUNT) * h * 0.8 + h*0.1;
+        if(i===0) minimapCtx.moveTo(sx, sy);
+        else minimapCtx.lineTo(sx, sy);
+    }
+    minimapCtx.stroke();
+
+    // Player dot
+    let pSegIdx = Math.floor(player.positionZ / SEGMENT_LENGTH) % TRACK_SEGMENTS_COUNT;
+    let pSx = mapOffsetX + Math.sin(pSegIdx*0.1)*30 * mapScale;
+    let pSy = (pSegIdx / TRACK_SEGMENTS_COUNT) * h * 0.8 + h*0.1;
+    
+    minimapCtx.fillStyle = '#0f0';
+    minimapCtx.beginPath();
+    minimapCtx.arc(pSx, pSy, 4, 0, Math.PI*2);
+    minimapCtx.fill();
+
+    // Opponent dots
+    for(let op of opponents) {
+        let oSegIdx = Math.floor(op.z / SEGMENT_LENGTH) % TRACK_SEGMENTS_COUNT;
+        letoSx = mapOffsetX + Math.sin(oSegIdx*0.1)*30 * mapScale;
+        letoSy = (oSegIdx / TRACK_SEGMENTS_COUNT) * h * 0.8 + h*0.1;
+        minimapCtx.fillStyle = op.color;
+        minimapCtx.beginPath();
+        minimapCtx.arc(letoSx, letoSy, 3, 0, Math.PI*2);
+        minimapCtx.fill();
+    }
+}
+
+// --- GARAGE & UI LOGIC ---
+let garageScreen = document.getElementById('garage-screen');
+let carListEl = document.getElementById('car-list');
+let startRaceBtn = document.getElementById('start-race-btn');
+
+function renderGarage() {
+    carListEl.innerHTML = '';
+    cars.forEach((c, idx) => {
+        let div = document.createElement('div');
+        div.className = 'car-card' + (idx===0 ? ' selected' : '');
+        div.innerHTML = `<h3>${c.name}</h3>
+            <div>Speed: <div class='stat-bar'><div class='stat-fill' style='width:${(c.speed/28000)*100}%'></div></div></div>
+            <div>Acceleration: <div class='stat-bar'><div class='stat-fill' style='width:${(c.accel/6000)*100}%'></div></div></div>
+            <div>Handling: <div class='stat-bar'><div class='stat-fill' style='width:${(c.handling/6000)*100}%'></div></div></div>`;
+        div.onclick = () => {
+            document.querySelectorAll('.car-card').forEach(el => el.classList.remove('selected'));
+            div.classList.add('selected');
+            selectedCar = c;
+        };
+        carListEl.appendChild(div);
+    });
+}
+
+renderGarage();
+selectedCar = cars[0];
+
+startRaceBtn.onclick = () => {
+    garageScreen.style.display = 'none';
+    player.maxSpeed = selectedCar.speed;
+    player.acceleration = selectedCar.accel;
+    player.handling = selectedCar.handling;
+    player.positionZ = 0;
+    player.speed = 0;
+    player.lap = 1;
+    player.bestLapTime = Infinity;
+    player.currentLapTime = 0;
+    player.lastLapStart = 0;
+    updateLapUI();
+    initOpponents();
+    requestAnimationFrame(gameLoop);
+};
+
+function updateLapUI() {
+    document.getElementById('lap-num').innerText = player.lap + '/3';
+    let ct = player.currentLapTime > 0 ? player.currentLapTime : (player.lastLapStart > 0 ? (Date.now()-player.lastLapStart)/1000 : 0);
+    document.getElementById('lap-time').innerText = formatTime(ct);
+    document.getElementById('best-lap').innerText = player.bestLapTime === Infinity ? '0:00.00' : formatTime(player.bestLapTime);
+}
+
+function drawScenery(ctx, width, height, offset) {
+    // Draw Hills (Background/Midground)
+    ctx.fillStyle = '#2d5a27'; // Dark green for hills
+    for (let i = 0; i < 10; i++) {
+        let h_size = 100 + Math.sin(i * 1.5) * 40;
+        let h_x = (i * width / 8);
+        let h_y = height - h_size/2;
+        ctx.beginPath();
+        ctx.ellipse(h_x, h_y + 100, h_size, h_size/2, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Draw Trees (Foreground/Side of road)
+    for (let i = 0; i < 20; i++) {
+        let treeX = (i % 5 === 0) ? 40 : width - 60; // Alternate left and right side
+        let treeY = offset + (i * 100) % height;
+        if (treeY < 0 || treeY > height) continue;
+
+        // Trunk
+        ctx.fillStyle = '#4b3621';
+        ctx.fillRect(treeX, treeY - 20, 10, 20);
+        
+        // Leaves
+        ctx.fillStyle = '#0a5d00';
+        ctx.beginPath();
+        ctx.moveTo(treeX - 20, treeY - 20);
+        ctx.lineTo(treeX + 30, treeY - 20);
+        ctx.lineTo(treeX + 5, treeY - 60);
+        ctx.fill();
+    }
+}
+
+function gameLoop() {
+    // ... existing logic ...
+    // Inside the main draw loop:
+    drawScenery(ctx, width, height, offset);
+
+</script>
+</body>
+</html>

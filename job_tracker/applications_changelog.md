@@ -1,0 +1,19 @@
+# Archived Applications Log
+
+Permanent, append-only record of every deleted or edited-over application row. Nothing in this file is ever removed.
+
+| Timestamp | Action | Date | Company | Title | Source | Status | Contact | Follow-up | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| 2026-07-28T07:30:56.365890 | edited (previous values) | 2026-07-28 | Cloudbeds | Senior Fullstack Engineer | https://www.linkedin.com/jobs/search-results/?currentJobId=4405265444&keywords=Cloudbeds&origin=BLENDED_SEARCH_RESULT_NAVIGATION_JOB_CARD&originToLandingJobPostings=4437560098%2C4440069669%2C4405265444 | Applied |  | 2026-08-11 |  |
+| 2026-07-29T05:53:56.224672 | edited (previous values) | 2026-07-28 | Dialogue | Senior Software Developer, Full Stac | https://www.linkedin.com/jobs/view/4433289487/?alternateChannel=search&eBP=NON_CHARGEABLE_CHANNEL&trk=d_flagship3_search_srp_jobs&refId=w3UFtxZ9OnETc8xfLv4vtQ%3D%3D&trackingId=RYMtkTNu7rqAmb9ZhczebA%3D%3D | Applied |  | 2026-08-11 |  |
+| 2026-07-29T10:32:05.586966 | edited (previous values) | 2026-07-16 | Hydro Québec | Développeur I | Quick Add | Applied |  |  |  |
+| 2026-07-30T11:44:59.263734 | edited (previous values) | 2026-07-28 | Dialogue | Senior Software Developer, Full Stac | https://www.linkedin.com/jobs/view/4433289487/?alternateChannel=search&eBP=NON_CHARGEABLE_CHANNEL&trk=d_flagship3_search_srp_jobs&refId=w3UFtxZ9OnETc8xfLv4vtQ%3D%3D&trackingId=RYMtkTNu7rqAmb9ZhczebA%3D%3D | Pre-Interview |  | 2026-08-11 |  |
+| 2026-07-31T15:05:29.270069 | edited (previous values) | 2026-07-28 | Dialogue | Senior Software Developer, Full Stac | https://www.linkedin.com/jobs/view/4433289487/?alternateChannel=search&eBP=NON_CHARGEABLE_CHANNEL&trk=d_flagship3_search_srp_jobs&refId=w3UFtxZ9OnETc8xfLv4vtQ%3D%3D&trackingId=RYMtkTNu7rqAmb9ZhczebA%3D%3D | Wait For Response |  | 2026-08-11 |  |
+| 2026-07-31T15:14:11.071808 | edited (previous values) | 2026-07-31 | micro1 | Senior Software Engineer (Typescript)! | Manual | Applied |  | 2026-08-14 |  |
+| 2026-08-01T05:20:05.932814 | edited (previous values) | 2026-07-17 | Rona | Développeur principal, full stack | Quick Add | Applied |  | 2026-07-31 |  |
+| 2026-08-02T16:00:08.955384 | edited (previous values) | 2026-07-31 | micro1 | Senior Software Engineer (Typescript)! | Manual | Post-Technical-Test |  | 2026-08-14 |  |
+| 2026-08-03T11:17:23.069361 | edited (previous values) | 2026-08-03 | Terminal | Senior Software Engineer | https://www.linkedin.com/jobs/view/4441862247/?trk=eml-email_application_confirmation_with_nba_01-jymbii-0-jobcard_body_4441862247&refId=KbseWTm3SjSFgOAslcptyg%3D%3D&trackingId=Dr2Vh%2F2YQuWoUCaQ7y4FhQ%3D%3D | Applied |  | 2026-08-17 |  |
+| 2026-08-05T04:46:27.304617 | edited (previous values) | 2026-07-17 | Clario | Senior Software Engineer (Angular/TypeScript) | Quick Add | Applied |  | 2026-07-31 |  |
+| 2026-08-06T09:35:02.570216 | edited (previous values) | 2026-07-20 | Intact | Senior Full stack AI Developer | https://www.linkedin.com/jobs/view/4404490759/?trk=eml-email_job_alert_digest_01-primary_job_list-0-jobcard_body_3_jobid_4404490759_ssid_8840000042_fmid_tz68v~mrry8wbr~xb&refId=0Mww8NC819QE8FZOe80Mqw%3D%3D&trackingId=ACnZIqqZUXqH456R%2BhOmDQ%3D%3D | Applied |  | 2026-08-03 |  |
+| 2026-08-06T11:39:15.295358 | edited (previous values) | 2026-07-29 | Narvar | Senior Fullstack Developer -AI | https://www.linkedin.com/jobs/view/4440403001/?trk=eml-email_jobs_facet_suggestions-JOBS_POSTING_SECTION_1-0-job_card_1_jobid_4440403001_sectionid_272001_fmid_tz68v~ms6fr4wf~i4&refId=s7oMwUc6LfMqhL8enz5b7w%3D%3D&trackingId=Z4wEDZMXTNEaAnhESu%2FJWg%3D%3D | Applied |  | 2026-08-12 |  |
+| 2026-08-07T10:36:31.035993 | edited (previous values) | 2026-07-23 | Cerence AI | Développeur Logiciel DevOps Senior/Senior DevOps Software Developer | https://ca.indeed.com/?from=gnav-messaging--messaging-webapp&vjk=0e68d7bf98547a5e | Applied |  | 2026-08-06 |  |

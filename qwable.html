@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Racing Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a1a2e; font-family: sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+        .hud-panel { background: rgba(0,0,0,0.6); color: #fff; padding: 8px 12px; border-radius: 4px; margin: 5px; display: inline-block; font-size: 14px; pointer-events: auto; }
+        .speedometer { position: absolute; bottom: 20px; right: 20px; width: 160px; height: 80px; background: rgba(0,0,0,0.7); border-radius: 8px; overflow: hidden; }
+        .speed-needle { position: absolute; bottom: 0; left: 50%; width: 4px; height: 100%; transform-origin: bottom center; background: #ff3366; transition: transform 0.1s; }
+        .rpm-bar { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, #2a2a4a, #ff3366); }
+        #garage-screen { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 10; flex-direction: column; align-items: center; justify-content: center; color: white; pointer-events: auto; }
+        .car-card { border: 2px solid #444; padding: 16px; margin: 10px; background: #2a2a3e; cursor: pointer; transition: transform 0.2s, border-color 0.2s; text-align: center; }
+        .car-card:hover { transform: translateY(-5px); border-color: #ffcc00; }
+        .car-icon { width: 64px; height: 32px; background: #ddd; margin-bottom: 8px; position: relative; }
+        .car-icon::after { content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 40px; background: linear-gradient(90deg, transparent 50%, #333 50%); }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="ui-layer">
+    <div class="hud-panel">Lap: <span id="lap-display">1/3</span> | Best Lap: <span id="best-lap" style="color:#ffcc00;">--</span></div>
+    <div class="hud-panel">Time: <span id="time-display">0.000</span>s</div>
+    <div class="speedometer"><div class="rpm-bar"></div><div class="speed-needle" id="speed-needle"></div></div>
+    <div style="position:absolute; bottom:20px; left:20px;">Minimap:</div>
+    <canvas id="minimapCanvas" width="140" height="80" style="background:#2a2a3e; border-radius:6px;"></canvas>
+</div>
+
+<div id="garage-screen">
+    <h1 style="margin-bottom:20px;">Garage – Choose Your Car</h1>
+    <div class="car-card" data-car="sport">
+        <div class="car-icon" style="background:#ff4d4d;"></div>
+        <strong>Sport Coupe</strong><br>Speed: 95 | Handling: 80 | Accel: 70<br>Max RPM: 8200
+    </div>
+    <div class="car-card" data-car="suv">
+        <div class="car-icon" style="background:#4d6dff;"></div>
+        <strong>Off-Road SUV</strong><br>Speed: 75 | Handling: 60 | Accel: 85<br>Max RPM: 6200
+    </div>
+    <div class="car-card" data-car="classic">
+        <div class="car-icon" style="background:#d4a017;"></div>
+        <strong>Vintage Roadster</strong><br>Speed: 85 | Handling: 90 | Accel: 65<br>Max RPM: 7200
+    </div>
+    <p style="margin-top:20px; opacity:0.7;">Click a car to equip it, then press SPACE to start the race.</p>
+</div>
+
+<script>
+/* =========================
+   Racing Game – Single File
+   ========================= */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+const minimapCanvas = document.getElementById('minimapCanvas');
+const mmCtx = minimapCanvas.getContext('2d');
+
+// UI elements
+const lapDisplay = document.getElementById('lap-display');
+const bestLapEl = document.getElementById('best-lap');
+const timeDisplay = document.getElementById('time-display');
+const speedNeedle = document.getElementById('speed-needle');
+const garageScreen = document.getElementById('garage-screen');
+
+// Resize handling
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ------------------------ Track Data ------------------------ */
+// Waypoints: (x, z) with y for elevation. We'll generate a smooth curve + hills.
+function generateTrack() {
+    const N = 120; // number of segments
+    const pts = [];
+    let x = 0, z = 0, y = 0;
+    for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        // base curve: a gentle S-shape in X, slight Z variation
+        const cx = Math.sin(t * Math.PI) * 120;
+        const cz = Math.cos(t * Math.PI * 0.6) * 80;
+        // hills: combine two sine waves for varied elevation
+        const hy = Math.sin(t * Math.PI * 2.5) * 30 + Math.sin(t * Math.PI * 1.2) * 45;
+        pts.push({ x: cx, z: cz, y: hy });
+    }
+    return pts;
+}
+
+const track = generateTrack();
+const totalDist = track.length - 1; // number of segments between points
+// Checkpoints for lap detection (every ~8% of track)
+const checkpoints = [];
+for (let i = 0; i < track.length; i += Math.floor(track.length / 12)) {
+    checkpoints.push(i);
+}
+
+/* ------------------------ Car Stats ------------------------ */
+function createCar(type) {
+    const base = {
+        maxSpeed: 0, accel: 0, handling: 0, rpmMax: 0, color: '#fff',
+        width: 24, height: 12, // sprite dimensions in world units (scaled later)
+    };
+    if (type === 'sport') { base.maxSpeed = 95; base.accel = 8.2; base.handling = 0.92; base.rpmMax = 8200; base.color = '#ff4d4d'; }
+    else if (type === 'suv') { base.maxSpeed = 75; base.accel = 6.5; base.handling = 0.75; base.rpmMax = 6200; base.color = '#4d6dff'; }
+    else if (type === 'classic') { base.maxSpeed = 85; base.accel = 5.8; base.handling = 1.0; base.rpmMax = 7200; base.color = '#d4a017'; }
+    return base;
+}
+
+let playerCar = createCar('sport'); // default
+const aiCars = [createCar('classic'), createCar('suv')]; // two AI opponents
+
+/* ------------------------ Game State ------------------------ */
+// Camera follows the player along the track, with some offset.
+let cameraPos = { x: 0, z: 0 };
+let cameraTargetIndex = 0; // index in track array where camera is looking at
+const camOffsetDist = 45; // distance behind player (in world units)
+
+// Player physics
+let playerSpeed = 0; // current speed (units per second)
+let playerRPM = 0;   // 0..rpmMax
+let playerSteer = 0; // -1..1
+const maxSteerRate = 2.8; // radians per second
+
+// AI state: each stores its own index along track and speed
+function initAI() {
+    aiCars.forEach((c, i) => {
+        c.index = Math.floor(totalDist * (0.3 + i * 0.15)); // start ahead
+        c.speed = playerCar.maxSpeed * 0.92; // slightly slower than max
+    });
+}
+
+// Lap timing: we track when the player passes each checkpoint after a full lap.
+let lapsCompleted = 0;
+let lastCheckpointIndex = -1;
+const lapTimes = [];
+let bestLapTime = null;
+
+/* ------------------------ Input Handling ------------------------ */
+const keys = {};
+window.addEventListener('keydown', e => {
+    if (e.code === 'Space') {
+        // start race from garage or restart current run
+        initAI();
+        playerSpeed = 0;
+        playerRPM = 0;
+        lapsCompleted = 0;
+        lastCheckpointIndex = -1;
+        lapTimes.length = 0;
+        bestLapTime = null;
+    } else if (e.code === 'ArrowLeft') keys.ArrowLeft = true;
+    else if (e.code === 'ArrowRight') keys.ArrowRight = true;
+    else if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.W = true;
+    else if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.S = true;
+});
+window.addEventListener('keyup', e => {
+    if (e.code === 'Space') garageScreen.style.display = 'none';
+    else if (e.code === 'ArrowLeft') keys.ArrowLeft = false;
+    else if (e.code === 'ArrowRight') keys.ArrowRight = false;
+    else if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.W = false;
+    else if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.S = false;
+});
+
+// Garage selection
+garageScreen.addEventListener('click', () => {
+    const card = document.querySelector('.car-card[data-car]');
+    if (!card) return;
+    playerCar = createCar(card.dataset.car);
+    garageScreen.style.display = 'none';
+});
+
+/* ------------------------ Physics & Update ------------------------ */
+function update(dt) {
+    // Find current track index for camera and player (clamp to last point)
+    const idx = Math.min(track.length - 1, Math.floor(cameraTargetIndex));
+    const curPt = track[idx];
+    const nextPt = track[Math.min(idx + 1, track.length - 1)];
+
+    // Interpolate between two points for smooth camera movement
+    const t = (cameraTargetIndex - idx);
+    const camX = curPt.x + (nextPt ? (nextPt.x - curPt.x) * t : 0);
+    const camZ = curPt.z + (nextPt ? (nextPt.z - curPt.z) * t : 0);
+
+    // Player acceleration / braking
+    if (keys.W) {
+        playerRPM += dt * playerCar.accel;
+        if (playerRPM > playerCar.rpmMax) playerRPM = playerCar.rpmMax;
+    } else if (keys.S) {
+        playerRPM -= dt * 12; // brake deceleration
+        if (playerRPM < 0) playerRPM = 0;
+    }
+
+    // RPM to speed mapping: simple linear with a cap at maxSpeed
+    const targetSpeed = (playerRPM / playerCar.rpmMax) * playerCar.maxSpeed;
+    playerSpeed += dt * (targetSpeed - playerSpeed) * 1.8; // smooth approach
+
+    // Steering only when moving, limited by handling stat
+    if (Math.abs(playerSpeed) > 0.5) {
+        const steerInput = (keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0);
+        playerSteer += dt * steerInput * maxSteerRate;
+        // clamp steering angle based on handling
+        const maxAngle = Math.PI / 4.5 * playerCar.handling;
+        if (playerSteer > maxAngle) playerSteer = maxAngle;
+        if (playerSteer < -maxAngle) playerSteer = -maxAngle;
+    }
+
+    // Determine current heading from track direction at camera position
+    const dirX = nextPt ? (nextPt.x - curPt.x) : 0;
+    const dirZ = nextPt ? (nextPt.z - curPt.z) : 0;
+    const heading = Math.atan2(dirZ, dirX);
+
+    // Apply steering to change heading
+    if (Math.abs(playerSteer) > 0.001) {
+        const turnRate = playerSpeed * 0.035 * playerCar.handling;
+        cameraTargetIndex += dt * Math.sign(playerSteer) * turnRate;
+    }
+
+    // Move along the track: speed is in world units per second, but we need to map it onto track distance
+    const segmentDist = nextPt ? Math.hypot(nextPt.x - curPt.x, nextPt.z - curPt.z) : 0;
+    if (segmentDist > 0) {
+        // Convert speed into progress along the waypoint array
+        const progressPerSec = playerSpeed / segmentDist;
+        cameraTargetIndex += dt * progressPerSec;
+    }
+
+    // Clamp camera index to track bounds
+    cameraTargetIndex = Math.max(0, Math.min(track.length - 1, cameraTargetIndex));
+
+    // Lap detection: when we cross a checkpoint after the last one
+    const curCheckIdx = checkpoints.indexOf(Math.floor(cameraTargetIndex));
+    if (curCheckIdx !== -1 && curCheckIdx > lastCheckpointIndex) {
+        lastCheckpointIndex = curCheckIdx;
+        lapsCompleted++;
+        lapTimes.push((Date.now() / 1000).toFixed(3));
+        bestLapTime = Math.min(bestLapTime === null ? Infinity : parseFloat(bestLapTime), parseFloat(lapTimes[lapTimes.length - 1]));
+    }
+
+    // AI simple follow: each AI tries to maintain a fixed distance ahead of the player
+    aiCars.forEach((ai, i) => {
+        const desiredDist = 35 + (i * 8); // staggered distances
+        const distToPlayer = Math.max(0.1, cameraTargetIndex - ai.index);
+        if (distToPlayer < desiredDist) {
+            ai.speed += dt * 2.5; // accelerate to catch up
+        } else if (distToPlayer > desiredDist + 8) {
+            ai.speed -= dt * 3.0; // slow down if too far ahead
+        }
+        // clamp AI speed between a fraction of player max and its own maxSpeed
+        const aiMax = ai.maxSpeed * 0.95;
+        ai.speed = Math.min(Math.max(ai.speed, aiMax * 0.6), aiMax);
+
+        // Move AI along track similarly to player
+        if (segmentDist > 0) {
+            const progressPerSec = ai.speed / segmentDist;
+            ai.index += dt * progressPerSec;
+        }
+    });
+
+    // Update UI elements
+    lapDisplay.textContent = `${lapsCompleted + 1}/${aiCars.length + 1}`;
+    timeDisplay.textContent = ((Date.now() - startTime) / 1000).toFixed(3);
+    speedNeedle.style.transform = `rotate(${Math.min(Math.max((playerSpeed / playerCar.maxSpeed) * 260, 5), 260)}deg)`;
+
+    // Draw minimap (simplified: just track line and positions)
+    drawMinimap();
+}
+
+/* ------------------------ Rendering ------------------------ */
+function draw() {
+    const idx = Math.min(track.length - 1, Math.floor(cameraTargetIndex));
+    const curPt = track[idx];
+    const nextPt = track[Math.min(idx + 1, track.length - 1)];
+    const t = (cameraTargetIndex - idx);
+
+    // Camera offset: we look from behind the player along the road direction
+    const camX = curPt.x + (nextPt ? (nextPt.x - curPt.x) * t : 0);
+    const camZ = curPt.z + (nextPt ? (nextPt.z - curPt.z) * t : 0);
+
+    // Project world coordinates to screen using a simple perspective projection
+    const fov = 60;
+    const near = 1.5;
+    const scale = canvas.width / (2 * Math.tan(fov * Math.PI / 360));
+    const cameraDist = camX + camZ * 0.4; // slight tilt for depth
+
+    function project(x, z) {
+        const dx = x - camX;
+        const dz = z - camZ;
+        const scaleZ = near / (dz + cameraDist);
+        return {
+            sx: Math.round((dx * scaleZ) * scale + canvas.width / 2),
+            sy: Math.round((-dz * scaleZ) * scale + canvas.height / 2),
+            s: scaleZ,
+        };
+    }
+
+    // Background layers (parallax)
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0, '#1a3c5e');
+    skyGrad.addColorStop(1, '#4b6d9e');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Distant mountains (static)
+    ctx.fillStyle = '#2a3a4e';
+    for (let i = 0; i < canvas.width; i += 60) {
+        const h = Math.sin((i + camX * 0.15) / 80) * 70 + 40;
+        ctx.beginPath();
+        ctx.moveTo(i, canvas.height);
+        ctx.lineTo(i + 30, canvas.height - h);
+        ctx.lineTo(i + 60, canvas.height);
+        ctx.fill();
+    }
+
+    // Midground trees (parallax)
+    const treeOffset = camX * 0.5;
+    for (let i = 0; i < canvas.width; i += 45) {
+        const tx = ((i + treeOffset) % canvas.width);
+        const ty = Math.sin((tx + camZ * 0.2) / 60) * 30 + 120;
+        ctx.fillStyle = '#1e3a1a';
+        ctx.beginPath();
+        ctx.arc(tx, canvas.height - ty, 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Buildings (parallax)
+    const bldgOffset = camX * 0.7;
+    for (let i = 0; i < canvas.width; i += 90) {
+        const bx = ((i + bldgOffset) % canvas.width);
+        const by = Math.sin((bx + camZ * 0.15) / 40) * 20 + 80;
+        ctx.fillStyle = '#3a4a6e';
+        ctx.fillRect(bx, canvas.height - by - 40, 70, 40);
+    }
+
+    // Road surface: draw segments from near to far
+    const roadWidth = 120;
+    for (let i = Math.max(0, idx - 3); i <= Math.min(track.length - 1, idx + 3); i++) {
+        const pt = track[i];
+        const proj = project(pt.x, pt.z);
+        // road color with slight shading based on elevation
+        ctx.fillStyle = '#2a2a3e';
+        ctx.fillRect(proj.sx, proj.sy - (pt.y * 0.6), roadWidth * proj.s, Math.max(1, 40 * proj.s));
+
+        // lane markings: dashed lines that move with the camera
+        if ((i % 2) === 0 && i < track.length - 1) {
+            const next = track[i + 1];
+            const midX = (pt.x + next.x) / 2;
+            const midZ = (pt.z + next.z) / 2;
+            const mproj = project(midX, midZ);
+            ctx.strokeStyle = '#5a5a7e';
+            ctx.lineWidth = Math.max(1, 4 * mproj.s);
+            ctx.beginPath();
+            ctx.moveTo(mproj.sx - roadWidth/2 * mproj.s, mproj.sy - (pt.y * 0.6) * mproj.s);
+            ctx.lineTo(mproj.sx + roadWidth/2 * mproj.s, mproj.sy - (pt.y * 0.6) * mproj.s);
+            ctx.stroke();
+        }
+    }
+
+    // Draw AI cars and player car as sprites (simple rectangles with direction)
+    function drawCarSprite(x, z, headingDeg, color, isPlayer) {
+        const proj = project(x, z);
+        const w = roadWidth * 0.25; // width of sprite in world units
+        const h = w * 0.45;
+        const sx = proj.sx - w/2 * proj.s;
+        const sy = proj.sy - (z * 0.6) * proj.s - h/2 * proj.s;
+
+        ctx.save();
+        ctx.translate(sx + w/2, sy);
+        // rotate sprite to face direction of track at this point
+        const dirX = nextPt ? (nextPt.x - curPt.x) : 0;
+        const dirZ = nextPt ? (nextPt.z - curPt.z) : 0;
+        const angle = Math.atan2(dirZ, dirX);
+        ctx.rotate(angle + Math.PI / 2); // adjust for sprite orientation
+
+        ctx.fillStyle = color;
+        ctx.fillRect(-w/2, -h/2, w, h);
+        // windshield
+        ctx.fillStyle = '#8a9ab0';
+        ctx.fillRect(-w*0.45, -h*0.35, w*0.9, h*0.15);
+
+        if (isPlayer) {
+            // speedometer overlay on car: a small gauge
+            const rpmPct = playerRPM / playerCar.rpmMax;
+            ctx.fillStyle = `rgba(255, 50, 60, ${rpmPct})`;
+            ctx.fillRect(-w/2 + w*0.1, -h/2 + h*0.8, w*0.8 * rpmPct, h*0.1);
+        }
+
+        ctx.restore();
+    }
+
+    // Draw AI cars (they are ahead of player)
+    aiCars.forEach((ai, i) => {
+        const idxAi = Math.min(track.length - 1, Math.floor(ai.index));
+        const ptAi = track[idxAi];
+        drawCarSprite(ptAi.x, ptAi.z, 0, ai.color, false);
+    });
+
+    // Draw player car at bottom of screen (fixed position)
+    const pProj = project(curPt.x + camX * 0.45, curPt.z + camZ * 0.45);
+    drawCarSprite(pProj.sx, pProj.sy - (curPt.y * 0.6), 0, playerCar.color, true);
+
+    // Speedometer overlay already drawn via CSS; we just need to update needle which is done in UI layer.
+}
+
+/* ------------------------ Minimap ------------------------ */
+function drawMinimap() {
+    mmCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+    const scale = 140 / totalDist; // map units per world unit
+    const offsetX = (minimapCanvas.width - track.length * scale) / 2;
+
+    // Track line
+    mmCtx.strokeStyle = '#5a6a8e';
+    mmCtx.lineWidth = 3;
+    mmCtx.beginPath();
+    for (let i = 0; i < track.length; i++) {
+        const pt = track[i];
+        const x = offsetX + i * scale;
+        const y = minimapCanvas.height / 2 - pt.y * 0.4; // slight elevation effect
+        if (i === 0) mmCtx.moveTo(x, y);
+        else mmCtx.lineTo(x, y);
+    }
+    mmCtx.stroke();
+
+    // Player dot
+    const pIdx = Math.min(track.length - 1, Math.floor(cameraTargetIndex));
+    const ptP = track[pIdx];
+    const px = offsetX + pIdx * scale;
+    const py = minimapCanvas.height / 2 - ptP.y * 0.4;
+    mmCtx.fillStyle = '#ffcc00';
+    mmCtx.beginPath();
+    mmCtx.arc(px, py, 3, 0, Math.PI * 2);
+    mmCtx.fill();
+
+    // AI dots
+    aiCars.forEach((ai) => {
+        const idxAi = Math.min(track.length - 1, Math.floor(ai.index));
+        const ptAi = track[idxAi];
+        const ax = offsetX + idxAi * scale;
+        const ay = minimapCanvas.height / 2 - ptAi.y * 0.4;
+        mmCtx.fillStyle = ai.color;
+        mmCtx.beginPath();
+        mmCtx.arc(ax, ay, 3, 0, Math.PI * 2);
+        mmCtx.fill();
+    });
+}
+
+/* ------------------------ Main Loop ------------------------ */
+let lastTime = performance.now();
+let startTime = Date.now();
+function loop(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.05); // cap dt
+    lastTime = now;
+
+    update(dt);
+    draw();
+
+    requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
