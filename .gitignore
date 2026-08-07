@@ -95,6 +95,14 @@ nextjs-python-auth/frontend/out/
 car_race/.pi/
 car_race/.pi/npm/
 
+# m2ts_to_mp4 runtime dirs (input videos, output mp4s, generated SRTs)
+m2ts_to_mp4/input/
+m2ts_to_mp4/output/
+m2ts_to_mp4/*.mp4
+m2ts_to_mp4/*.m2ts
+m2ts_to_mp4/*.srt
+m2ts_to_mp4/*.wav
+
 # Xcode / Swift build artifacts
 memWatch/build/
 memWatch/.build/
