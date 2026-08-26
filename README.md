@@ -4,6 +4,13 @@ A collection of personal projects I've built. Each lives in its own folder.
 
 ## Projects
 
+### 🧠 ATF — Adaptive Tensor Format for Apple Silicon
+[`amgadtewfik/atf`](https://github.com/amgadtewfik/atf) · C++ · Metal + custom kernels
+
+Single-file `.atf` container with custom Metal kernels pushing decode
+close to the memory-bandwidth ceiling on Apple Silicon. Ships a macOS
+DMG via the [v0.1.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.1.0).
+
 ### 🎬 CropCut — Video Crop & Resolution Enhancer
 [`CropCut/`](./CropCut/) · Python · PyQt6 + OpenCV + FFmpeg
 
@@ -51,6 +58,9 @@ drivers for both Windows (`convert_all.bat`) and macOS/Linux
 ├── PLY Viewer/           # Windows OpenGL PLY viewer
 └── README.md             # This file
 ```
+
+> ATF lives in its own repository: <https://github.com/amgadtewfik/atf>
+> (see the Projects section above).
 
 ## Notes
 
