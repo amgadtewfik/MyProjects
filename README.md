@@ -9,7 +9,7 @@ A collection of personal projects I've built. Each lives in its own folder.
 
 Single-file `.atf` container with custom Metal kernels pushing decode
 close to the memory-bandwidth ceiling on Apple Silicon. Ships a macOS
-DMG via the [v0.2.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.2.0).
+DMG via the [v0.3.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.3.0).
 
 ### 🎬 CropCut — Video Crop & Resolution Enhancer
 [`CropCut/`](./CropCut/) · Python · PyQt6 + OpenCV + FFmpeg
