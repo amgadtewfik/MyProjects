@@ -110,3 +110,6 @@ memWatch/.build/
 *.xcworkspace/xcuserdata/
 DerivedData/
 *.xcarchive
+
+# SHARP v3 model checkpoint (2.6 GB)
+SHARP-v3/sharp_2572gikvuh.pt

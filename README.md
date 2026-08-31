@@ -48,6 +48,23 @@ drivers for both Windows (`convert_all.bat`) and macOS/Linux
 (`convert_all.sh`). Supports codec choice (`copy` / `libx264` /
 `libx265`), CRF control, and `--faststart` for web playback.
 
+### 🧠 SHARP v3 — Monocular 3D Gaussian Splatting
+[`SHARP-v3/`](./SHARP-v3/) · Python · PyTorch + gsplat + Apple Metal (MPS)
+
+Fork of Apple's [SHARP](https://apple.github.io/ml-sharp/) (arXiv 2512.10685) with
+quality and file-size enhancements. Given a single photograph, SHARP regresses
+a 3D Gaussian Splatting (3DGS) scene in under a second on CPU or GPU.
+The resulting `.ply` renders at real-time framerates in any compatible
+viewer (SuperSplat, Three.js, nerfstudio, etc.).
+
+**v3 enhancements:** PLY compression (60-90% size reduction, default), rotation
+support (`--rotate x/y/z <angle>`), quality presets (`--quality standard/high/best`),
+hole inpainting, and surface-aligned Gaussian disks. Includes batch processing
+script (`run.sh`) and Apple Silicon MPS rasterizer via `gsplat-mps/`.
+
+> **Note:** Model checkpoint (~2.6 GB) must be downloaded separately:
+> `wget https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt`
+
 ## Layout
 
 ```
@@ -56,6 +73,7 @@ drivers for both Windows (`convert_all.bat`) and macOS/Linux
 ├── m2ts_to_mp4/          # Batch m2ts → mp4 converter w/ JP→EN SRT
 ├── memWatch/             # macOS SwiftUI memory monitor
 ├── PLY Viewer/           # Windows OpenGL PLY viewer
+├── SHARP-v3/             # Monocular 3D Gaussian Splatting (Apple SHARP fork)
 └── README.md             # This file
 ```
 
