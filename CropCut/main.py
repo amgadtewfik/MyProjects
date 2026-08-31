@@ -13,7 +13,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import (
     QImage, QPixmap, QPainter, QPen, QColor, QFont, QIcon,
-    QCursor, QKeySequence, QShortcut
+    QCursor, QKeySequence, QShortcut, QTransform
 )
 
 # Heavy native modules — imported lazily so the window appears instantly.
@@ -257,6 +257,7 @@ class VideoEditorApp(QMainWindow):
         self.vid_w = 0
         self.vid_h = 0
         self.current_frame = 0
+        self.rotation = 0
         self.is_playing = False
         self._worker = None
 
@@ -466,6 +467,23 @@ class VideoEditorApp(QMainWindow):
 
         sv.addWidget(crop_grp)
 
+        # Rotation group
+        rot_grp = QGroupBox("ROTATION")
+        rot_layout = QVBoxLayout(rot_grp)
+        rot_row = QHBoxLayout()
+        rot_lbl = QLabel("Rotate:")
+        self.rotation_combo = QComboBox()
+        self.rotation_combo.addItems(["0°", "90°", "180°", "270°"])
+        self.rotation_combo.setToolTip("Rotate the video before cropping/upscaling")
+        rot_row.addWidget(rot_lbl)
+        rot_row.addWidget(self.rotation_combo, 1)
+        rot_layout.addLayout(rot_row)
+        self.rotation_info = QLabel("No rotation")
+        self.rotation_info.setObjectName("info")
+        self.rotation_info.setWordWrap(True)
+        rot_layout.addWidget(self.rotation_info)
+        sv.addWidget(rot_grp)
+
         # Upscale group
         upscale_grp = QGroupBox("RESOLUTION ENHANCEMENT")
         upscale_layout = QVBoxLayout(upscale_grp)
@@ -546,6 +564,7 @@ class VideoEditorApp(QMainWindow):
         self.video_widget.crop_changed.connect(self._on_crop_changed)
         self.btn_save.clicked.connect(self._save_video)
         self.scale_combo.currentIndexChanged.connect(self._update_output_size_label)
+        self.rotation_combo.currentIndexChanged.connect(self._on_rotation_changed)
         # Keyboard shortcuts
         QShortcut(QKeySequence("Space"), self, self._toggle_play)
         QShortcut(QKeySequence("Left"), self, lambda: self._step_frame(-1))
@@ -577,6 +596,9 @@ class VideoEditorApp(QMainWindow):
         self.video_widget.vid_w = self.vid_w
         self.video_widget.vid_h = self.vid_h
         self.current_frame = 0
+        self.rotation = 0
+        self.rotation_combo.setCurrentIndex(0)
+        self.rotation_info.setText("No rotation")
 
         # Hide placeholder
         self.placeholder.hide()
@@ -656,7 +678,10 @@ class VideoEditorApp(QMainWindow):
         h, w, ch = rgb.shape
         img = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
         pm = QPixmap.fromImage(img)
-        # Scale pixmap to fit widget, keeping aspect ratio
+        # Apply rotation to preview (if any)
+        if self.rotation != 0:
+            transform = QTransform().rotate(self.rotation)
+            pm = pm.transformed(transform)
         lw = self.video_widget.width()
         lh = self.video_widget.height()
         scaled = pm.scaled(lw, lh, Qt.AspectRatioMode.KeepAspectRatio,
@@ -699,6 +724,34 @@ class VideoEditorApp(QMainWindow):
             self.btn_crop_mode.setText("✚  Enable Crop Tool")
             self.status.showMessage("")
 
+    def _get_effective_dims(self):
+        """Return (effective_width, effective_height) accounting for rotation."""
+        if self.rotation in (90, 270):
+            return (self.vid_h, self.vid_w)
+        return (self.vid_w, self.vid_h)
+
+    def _on_rotation_changed(self, index):
+        angles = [0, 90, 180, 270]
+        self.rotation = angles[index]
+        self.video_widget.clear_crop()
+        self.btn_clear_crop.setEnabled(False)
+        self.crop_info.setText("No crop selected")
+        ew, eh = self._get_effective_dims()
+        if self.rotation == 0:
+            self.rotation_info.setText("No rotation")
+        else:
+            self.rotation_info.setText("Rotated " + str(self.rotation) + chr(176) + chr(10) + "(" + str(ew) + " × " + str(eh) + " effective)")
+        if self.vid_w > 0:
+            self.info_res.setText(f"{self.vid_w} × {self.vid_h}  →  {ew} × {eh}")
+        if self.rotation in (90, 270):
+            self.video_widget.vid_w, self.video_widget.vid_h = self.vid_h, self.vid_w
+        else:
+            self.video_widget.vid_w, self.video_widget.vid_h = self.vid_w, self.vid_h
+        self._update_output_size_label()
+        if self.cap:
+            self._render_frame(self.current_frame)
+        self.status.showMessage(f"Rotation set to {self.rotation}° — crop cleared")
+
     def _clear_crop(self):
         self.video_widget.clear_crop()
         self.btn_clear_crop.setEnabled(False)
@@ -721,7 +774,8 @@ class VideoEditorApp(QMainWindow):
             self.output_size_label.setText("")
             return
         vc = self.video_widget.get_crop_in_video_coords()
-        w, h = (vc[2], vc[3]) if vc else (self.vid_w, self.vid_h)
+        ew, eh = self._get_effective_dims()
+        w, h = (vc[2], vc[3]) if vc else (ew, eh)
         scale_text = self.scale_combo.currentText()
         if scale_text.startswith("Original"):
             ow, oh = w, h
@@ -804,7 +858,18 @@ class VideoEditorApp(QMainWindow):
         # Build vf filters
         vf_parts = []
 
-        # Crop filter
+        # Rotation filter (apply first so crop coords are post-rotation)
+        if self.rotation == 90:
+            vf_parts.append("transpose=1")
+        elif self.rotation == 180:
+            vf_parts.append("transpose=1,transpose=1")
+        elif self.rotation == 270:
+            vf_parts.append("transpose=2")
+
+        # Effective dimensions after rotation
+        ew, eh = self._get_effective_dims()
+
+        # Crop filter (coordinates are in the post-rotation video)
         vc = self.video_widget.get_crop_in_video_coords()
         if vc:
             x, y, w, h = vc
@@ -822,9 +887,8 @@ class VideoEditorApp(QMainWindow):
             else:
                 sws = "bilinear"
 
-            # Calculate output dimensions
-            src_w = vc[2] if vc else self.vid_w
-            src_h = vc[3] if vc else self.vid_h
+            src_w = vc[2] if vc else ew
+            src_h = vc[3] if vc else eh
             ow = int(src_w * factor)
             oh = int(src_h * factor)
             ow += ow % 2
