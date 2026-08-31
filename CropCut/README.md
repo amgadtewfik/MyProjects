@@ -9,6 +9,7 @@ A desktop video editor for cropping regions and upscaling resolution, built with
 - **Open** any MP4, MOV, AVI, MKV, WebM video
 - **Play / Pause / Seek** with timeline scrubber
 - **Visual Crop Tool** — drag directly on the video to select a region
+- **Video Rotation** — rotate 90°, 180°, or 270° before cropping/upscaling
 - **Resolution Upscaling** — 1.5×, 2×, 3×, 4× with Lanczos / Bicubic / Bilinear
 - **Multiple output codecs**: H.264, H.265/HEVC, VP9, ProRes
 - **CRF quality control** (0 = lossless, 18 = excellent, 23 = default)
@@ -122,8 +123,9 @@ video_crop_app/
 
 1. **Open video** — Click "📂 Open Video" or drag-and-drop an MP4 file
 2. **Play** — Click Play or press **Space**; use ← → to step frame-by-frame
-3. **Crop** — Click "✚ Enable Crop Tool", then drag on the video to draw a selection box
-4. **Upscale** — Pick a scale factor (2×, 4×, etc.) and algorithm in the right sidebar
+3. **Rotate** — Choose 0°, 90°, 180°, or 270° in the Rotation panel (crop is cleared on rotation change)
+4. **Crop** — Click "✚ Enable Crop Tool", then drag on the video to draw a selection box
+5. **Upscale** — Pick a scale factor (2×, 4×, etc.) and algorithm in the right sidebar
 5. **Quality** — Adjust CRF (18 = excellent; lower = larger file; 0 = lossless)
 6. **Export** — Click "💾 Export / Save Video"; choose output name and location
 
