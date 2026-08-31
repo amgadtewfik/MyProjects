@@ -15,10 +15,10 @@ DMG via the [v0.3.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.
 [`CropCut/`](./CropCut/) · Python · PyQt6 + OpenCV + FFmpeg
 
 Desktop app for cropping regions of a video and upscaling the result.
-Open any MP4/MOV/AVI/MKV/WebM file, drag to select a crop region, choose
-an upscale factor (1.5× / 2× / 3× / 4×), pick a codec (H.264, H.265/HEVC,
-VP9, ProRes), and export. Includes timeline scrubbing, CRF quality control,
-and keyboard shortcuts (Space, ←/→).
+Open any MP4/MOV/AVI/MKV/WebM file, **rotate 90°/180°/270°**, drag to select
+a crop region, choose an upscale factor (1.5× / 2× / 3× / 4×), pick a codec
+(H.264, H.265/HEVC, VP9, ProRes), and export. Includes timeline scrubbing,
+CRF quality control, and keyboard shortcuts (Space, ←/→).
 
 ### 📊 memWatch — macOS Memory & Process Monitor
 [`memWatch/`](./memWatch/) · Swift · SwiftUI + AppKit (macOS)
