@@ -9,9 +9,9 @@ A collection of personal projects I've built. Each lives in its own folder.
 
 Single-file `.atf` container with custom Metal kernels pushing decode
 close to the memory-bandwidth ceiling on Apple Silicon. Ships a macOS
-DMG via the [v0.5.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.5.0).
+DMG via the [v0.5.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.6.0).
 
-**v0.5.0** adds a full visual & UX overhaul of the chat app: **light, dark, and auto themes** with pre-paint persistence (no theme flash), **six accent colors** (indigo/violet/teal/green/amber/rose), a redesigned **sidebar-nav Settings panel**, **⇧⌘L** to toggle theme, **⌘1–5** to switch tabs, and a forward-looking **Qwen4 architecture** (QSA + n-gram) with structural paths validated on synthetic data. No engine changes.
+**v0.6.0** adds a full visual & UX overhaul of the chat app: **light, dark, and auto themes** with pre-paint persistence (no theme flash), **six accent colors** (indigo/violet/teal/green/amber/rose), a redesigned **sidebar-nav Settings panel**, **⇧⌘L** to toggle theme, **⌘1–5** to switch tabs, and a forward-looking **Qwen4 architecture** (QSA + n-gram) with structural paths validated on synthetic data. No engine changes.
 
 ### 🎬 CropCut — Video Crop & Resolution Enhancer
 [`CropCut/`](./CropCut/) · Python · PyQt6 + OpenCV + FFmpeg
