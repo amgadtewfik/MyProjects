@@ -50,7 +50,7 @@ drivers for both Windows (`convert_all.bat`) and macOS/Linux
 (`convert_all.sh`). Supports codec choice (`copy` / `libx264` /
 `libx265`), CRF control, and `--faststart` for web playback.
 
-### 🧠 SHARP v3 — Monocular 3D Gaussian Splatting
+### 🧠 3D Gaussian Splatting Sharp (3DGS) — Monocular 3D Gaussian Splatting
 [`SHARP-v3/`](./SHARP-v3/) · Python · PyTorch + gsplat + Apple Metal (MPS)
 
 Fork of Apple's [SHARP](https://apple.github.io/ml-sharp/) (arXiv 2512.10685) with
