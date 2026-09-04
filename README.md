@@ -39,7 +39,7 @@ smoother dense-cloud appearance, interactive camera control, and
 per-point color from PLY attributes. Cross-compiled from macOS using
 MinGW-w64.
 
-### 🎞️ M2TS format to MP4 Converter + JP→EN Subtitles Auto Translation
+### 🎞️ M2TS format to MP4  — M2TS→MP4 Converter + JP→EN Subtitles Auto Translation
 [`m2ts_to_mp4/`](./m2ts_to_mp4/) · Python · FFmpeg + faster-whisper
 
 Batch-converts MPEG-TS `.m2ts` files (e.g. Blu-ray recordings) to
