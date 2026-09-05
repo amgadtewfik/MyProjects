@@ -7,9 +7,8 @@ A collection of personal projects I've built. Each lives in its own folder.
 ### 🧠 ATF — Adaptive Tensor Format for Apple Silicon
 [`amgadtewfik/atf`](https://github.com/amgadtewfik/atf) · C++ · Metal + custom kernels
 
-Single-file `.atf` container with custom Metal kernels pushing decode
-close to the memory-bandwidth ceiling on Apple Silicon. Ships a macOS
-DMG via the [v0.8.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.8.0).
+Introducing ATF (Adaptive Tensor Format) — a custom model format that converts quantized GGUF and MLX checkpoints into a single-file .atf container with hand-written Metal kernels, memory-mapped loads, GPU-resident weights, and an adaptive reasoning router, pushing inference close to the hardware's real memory-bandwidth ceiling in load times measured in seconds.
+Ships a macOS DMG via the [v0.8.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.8.0).
 
 **v0.6.0** adds a full visual & UX overhaul of the chat app: **light, dark, and auto themes** with pre-paint persistence (no theme flash), **six accent colors** (indigo/violet/teal/green/amber/rose), a redesigned **sidebar-nav Settings panel**, **⇧⌘L** to toggle theme, **⌘1–5** to switch tabs, and a forward-looking **Qwen4 architecture** (QSA + n-gram) with structural paths validated on synthetic data. No engine changes.
 
