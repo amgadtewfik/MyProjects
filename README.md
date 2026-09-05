@@ -5,7 +5,7 @@ A collection of personal projects I've built. Each lives in its own folder.
 ## Projects
 
 ### 🧠 ATF — Adaptive Tensor Format for Apple Silicon
-[`amgadtewfik/atf`](https://github.com/amgadtewfik/atf) · C++ · Metal + custom kernels
+[`amgadtewfik/atf`](https://github.com/amgadtewfik/atf) · Python · Metal + custom kernels
 
 Introducing ATF (Adaptive Tensor Format) — a custom model format that converts quantized GGUF and MLX checkpoints into a single-file .atf container with hand-written Metal kernels, memory-mapped loads, GPU-resident weights, and an adaptive reasoning router, pushing inference close to the hardware's real memory-bandwidth ceiling in load times measured in seconds.
 Ships a macOS DMG via the [v0.8.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.8.0).
