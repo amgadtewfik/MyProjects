@@ -4,42 +4,38 @@ A collection of personal projects I've built. Each lives in its own folder.
 
 ## Projects
 
-### <img src="./assets/atf-icon.png" alt="ATF icon" width="96" height="96"> ATF — Adaptive Tensor Format for Apple Silicon
+### <img src="./assets/atf-icon.png" alt="ATF icon" width="16" height="16"> ATF — Adaptive Tensor Format for Apple Silicon
 
 [`amgadtewfik/atf`](https://github.com/amgadtewfik/atf) · Python · Metal + custom kernels
 
 Introducing ATF (Adaptive Tensor Format) — a custom model format that converts quantized GGUF and MLX checkpoints into a single-file .atf container with hand-written Metal kernels, memory-mapped loads, GPU-resident weights, and an adaptive reasoning router, pushing inference close to the hardware's real memory-bandwidth ceiling in load times measured in seconds.
 
-- What's genuinely good about it (vs the others)
+#### What's genuinely good about it
 
- ### 1. It is the only one that runs every interesting GGUF quantization on Apple MetalThe README's headline claim is real: ATF has kernels for Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, IQ1_S, IQ2_XXS/XS/S, IQ3_XXS/S, IQ4_XS, IQ4_NL — fifteen formats, all via custom MSL in gguf_fast_*.py and
- gguf_metal.py. IQ4_NL hits74 GB/s, Q6_K 62 GB/s, which the docs honestly peg against the M4's ~84 GB/s ceiling.
+##### 1. Broad GGUF quantization support on Apple Metal
 
- The reason this matters: Ollama on macOS does not accelerate these formats on Metal — it dequantizes them on CPU or uses llama.cpp's GGML Metal path, which only covers a subset. LM Studio uses the same llama.cpp underneath, so it inherits the same gaps. oMLX is built on mlx_lm
- which natively supports MLX-quantized safetensors but does not ingest raw GGUF at all. So if you want to run a UD-Q2_K_XL 27B on an M4 mini, ATF is one of the few tools that will actually do it — Qwen3.8-27B-UD-Q2_K_XL.atf runs at 4.80 tok/s here.
+The README's headline claim is real: ATF has kernels for Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, IQ1_S, IQ2_XXS/XS/S, IQ3_XXS/S, IQ4_XS, and IQ4_NL — fifteen formats in total — implemented through custom MSL in `gguf_fast_*.py` and `gguf_metal.py`. IQ4_NL reaches 74 GB/s, while Q6_K reaches 62 GB/s, which the docs honestly peg against the M4's approximately 84 GB/s ceiling.
 
- ### 2. OpenAI-compatible server with real, end-to-end working features
+The reason this matters: Ollama on macOS does not accelerate these formats on Metal — it dequantizes them on CPU or uses llama.cpp's GGML Metal path, which only covers a subset. LM Studio uses the same llama.cpp underneath, so it inherits the same gaps. oMLX is built on `mlx_lm`, which natively supports MLX-quantized safetensors but does not ingest raw GGUF at all. So if you want to run a UD-Q2_K_XL 27B on an M4 mini, ATF is one of the few tools that will actually do it — `Qwen3.8-27B-UD-Q2_K_XL.atf` runs at 4.80 tok/s here.
 
- atf/server_openai.py is an 861-line OpenAI-compatible HTTP server (SSE streaming, /v1/models, /v1/chat/completions, tool calling). It is not just a wrapper. It does things the wrappers do not:
+##### 2. OpenAI-compatible server with real, end-to-end working features
 
- - A syscache that skips the 4838-token system-prompt prefill on repeat requests (verified: disk-persisted, hash-keyed, with a single-turn greeting detector that drops the system prompt entirely for "hi").
- - An adaptive tier router (atf/router.py) that scores each prompt for difficulty and picks one of four generation tiers (instant / chat / reasoning / deep), setting the thinking budget, temperature, and max_tokens. No other local runtime does this; you set it manually in the
- others.
- - A65536-token context with a chunked, growing preallocated KV cache (KVCache in engine.py) that explicitly fixed a previous OOM-on-16-GB bug. With prompt-prefix caching (_pcache) so the chat client re-sending the whole conversation each turn only re-prefills the new suffix.
- - Tool calling (atf/toolcall.py) with 7 dedicated stream-parser tests.
- 
-### 3. The format itself is thoughtful
+`atf/server_openai.py` is an 861-line OpenAI-compatible HTTP server (SSE streaming, `/v1/models`, `/v1/chat/completions`, and tool calling). It is not just a wrapper. It does things the wrappers do not:
 
- The .atf header is 128 bytes, magic ATF1. Startup reads only the header to populate the dropdown — no resident weights until you pick a model. mmap-able,16-byte aligned, single file. Dense weights (embed, attention, norms, lm_head) are always resident; LOD-0 experts always
- resident; LOD1+ on disk. The reader is offset-driven, so section order doesn't matter.
+ - A syscache that skips the 4,838-token system-prompt prefill on repeat requests. It is disk-persisted and hash-keyed, with a single-turn greeting detector that drops the system prompt entirely for "hi".
+ - An adaptive tier router (`atf/router.py`) that scores each prompt for difficulty and picks one of four generation tiers: instant, chat, reasoning, or deep. It sets the thinking budget, temperature, and `max_tokens`.
+ - A 65,536-token context with a chunked, growing preallocated KV cache (`KVCache` in `engine.py`) that fixed a previous out-of-memory issue on 16 GB systems. Prompt-prefix caching (`_pcache`) means the chat client only re-prefills the new suffix when it resends the conversation.
+ - Tool calling (`atf/toolcall.py`) with seven dedicated stream-parser tests.
 
- The LOD pyramid (INT8/INT4/INT2/low-rank/index-only) is a coherent idea, even if it's only partially exploited at runtime today.
+##### 3. Thoughtful file format
 
- ### 4. The Electron app is real and well-built
+The `.atf` header is 128 bytes with the `ATF1` magic value. Startup reads only the header to populate the dropdown — no resident weights until you pick a model. The file is memory-mappable, 16-byte aligned, and self-contained. Dense weights (embed, attention, norms, and `lm_head`) are always resident; LOD-0 experts are always resident; LOD1+ stays on disk. The reader is offset-driven, so section order does not matter.
 
- This is not a "TODO UI" wrapping a CLI. The Electron renderer is ~2400 lines of app.js plus theme/accent/density/font-size/animation controls, a six-palette accent system, a settings modal with five sections, multi-chat sidebar with Markdown/JSON export, full markdown rendering
- with markdown-it + highlight.js + DOMPurify (throttled to animation frames during streaming), copy + edit-and-resend + regenerate, crash banner with exponential-backoff auto-restart, SVG preview in a BrowserWindow, persistent window state, sandboxed renderer, strict CSP. The
- v0.6.0 cut flipped greedy decoding default-on and added an elapsed-time clock that starts on Submit. Honest-to-goodness native macOS app.
+The LOD pyramid (INT8/INT4/INT2/low-rank/index-only) is a coherent idea, even if it is only partially exploited at runtime today.
+
+##### 4. A real, well-built Electron app
+
+This is not a "TODO UI" wrapping a CLI. The Electron renderer is approximately 2,400 lines of `app.js` plus theme, accent, density, font-size, and animation controls; a six-palette accent system; a settings modal with five sections; a multi-chat sidebar with Markdown/JSON export; full Markdown rendering with markdown-it, highlight.js, and DOMPurify; copy, edit-and-resend, and regenerate actions; a crash banner with exponential-backoff auto-restart; SVG preview in a BrowserWindow; persistent window state; a sandboxed renderer; and a strict CSP. The v0.6.0 release enabled greedy decoding by default and added an elapsed-time clock that starts on submit. It is an honest-to-goodness native macOS app.
 
 Ships a macOS DMG via the [v0.9.0 release](https://github.com/amgadtewfik/atf/releases/tag/v0.9.0).
 
