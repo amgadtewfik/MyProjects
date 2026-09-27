@@ -33,13 +33,13 @@ process list, and configurable alerts. Built with `@Observable` state,
 SwiftUI views, and AppKit integration.
 
 ### 🧊 PLY Viewer — Point Cloud Renderer
-[`PLY Viewer/`](./PLY%20Viewer/) · C · OpenGL 3.3 + MinGW (Windows)
+[`ply_viewer/`](./ply_viewer/) · C / Objective-C · OpenGL 3.3 · Cocoa (macOS) + MinGW (Windows)
 
-Windows OpenGL point-cloud viewer for `.ply` files (ASCII and binary).
-Renders millions of points with a soft Gaussian-splat shader for
-smoother dense-cloud appearance, interactive camera control, and
-per-point color from PLY attributes. Cross-compiled from macOS using
-MinGW-w64.
+Point-cloud viewer for `.ply` files (ASCII and binary), with a native
+Cocoa build for macOS and a MinGW-w64 build for Windows sharing the same
+renderer core. Renders millions of points with a soft Gaussian-splat
+shader for smoother dense-cloud appearance, interactive camera control,
+per-point color from PLY attributes, and a headless snapshot mode.
 
 ### 🎞️ M2TS format to MP4  — M2TS→MP4 Converter + JP→EN Subtitles Auto Translation
 [`m2ts_to_mp4/`](./m2ts_to_mp4/) · Python · FFmpeg + faster-whisper
@@ -76,7 +76,7 @@ script (`run.sh`) and Apple Silicon MPS rasterizer via `gsplat-mps/`.
 ├── CropCut/              # Python desktop video editor
 ├── m2ts_to_mp4/          # Batch m2ts → mp4 converter w/ JP→EN SRT
 ├── memWatch/             # macOS SwiftUI memory monitor
-├── PLY Viewer/           # Windows OpenGL PLY viewer
+├── ply_viewer/           # macOS + Windows OpenGL PLY viewer
 ├── SHARP-v3/             # Monocular 3D Gaussian Splatting (Apple SHARP fork)
 └── README.md             # This file
 ```
