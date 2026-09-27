@@ -1,3 +1,0 @@
-([('PLY_Viewer',
-   '/Users/amgad/.minimax-agent/projects/3/ply_viewer/dist/PLY_Viewer',
-   'EXECUTABLE')],)

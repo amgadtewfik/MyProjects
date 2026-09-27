@@ -1,0 +1,27 @@
+#include <winver.h>
+
+APPICON ICON "app.ico"
+
+1 VERSIONINFO
+FILEVERSION     6,0,0,0
+PRODUCTVERSION  6,0,0,0
+FILEOS          0x40004L
+FILETYPE        0x1L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "PLY point cloud and 3D Gaussian Splatting viewer"
+            VALUE "FileVersion",     "6.0.0.0"
+            VALUE "InternalName",    "PLY_Viewer"
+            VALUE "OriginalFilename","PLY_Viewer.exe"
+            VALUE "ProductName",     "PLY Viewer"
+            VALUE "ProductVersion",  "6.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

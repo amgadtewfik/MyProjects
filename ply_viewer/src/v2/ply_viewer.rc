@@ -1,0 +1,3 @@
+/* PLY Viewer Windows resource - application icon */
+#define IDI_ICON1 101
+IDI_ICON1 ICON "app.ico"

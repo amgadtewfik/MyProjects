@@ -60,7 +60,6 @@ sk-or-*
 
 # Excluded embedded git repos
 how-llms-work/
-ply_viewer/
 Claude/
 Hermes/
 
@@ -114,3 +113,13 @@ DerivedData/
 # SHARP v3 model checkpoint (2.6 GB)
 SHARP-v3/sharp_2572gikvuh.pt
 SHARP-v3/gsplat-mps/
+
+# PLY Viewer (superseded by ply_viewer/)
+PLY Viewer/
+
+# ply_viewer build artifacts and virtualenv
+ply_viewer/.venv/
+ply_viewer/build/
+ply_viewer/dist/
+ply_viewer/backup/
+ply_viewer/__pycache__/

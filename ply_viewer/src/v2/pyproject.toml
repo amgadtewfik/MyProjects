@@ -1,0 +1,11 @@
+[project]
+name = "ply-viewer"
+version = "2.0.0"
+description = "PLY point cloud / Gaussian splat viewer (v1_alpha)"
+requires-python = ">=3.9"
+dependencies = [
+    "open3d>=0.17.0",
+    "numpy>=1.21.0",
+    "plyfile>=1.0.0",
+    "pyinstaller>=5.0",
+]

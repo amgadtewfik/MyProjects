@@ -1,0 +1,96 @@
+#ifndef PLY_GL3_WIN_H
+#define PLY_GL3_WIN_H
+
+#include <windows.h>
+#include <GL/gl.h>
+#include <GL/glext.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int ply_gl_load_win(void);
+
+extern PFNGLACTIVETEXTUREPROC ply_glActiveTexture;
+extern PFNGLATTACHSHADERPROC ply_glAttachShader;
+extern PFNGLBINDBUFFERPROC ply_glBindBuffer;
+extern PFNGLBINDFRAMEBUFFERPROC ply_glBindFramebuffer;
+extern PFNGLBINDVERTEXARRAYPROC ply_glBindVertexArray;
+extern PFNGLBUFFERDATAPROC ply_glBufferData;
+extern PFNGLBUFFERSUBDATAPROC ply_glBufferSubData;
+extern PFNGLCOMPILESHADERPROC ply_glCompileShader;
+extern PFNGLCREATEPROGRAMPROC ply_glCreateProgram;
+extern PFNGLCREATESHADERPROC ply_glCreateShader;
+extern PFNGLDELETEPROGRAMPROC ply_glDeleteProgram;
+extern PFNGLDELETESHADERPROC ply_glDeleteShader;
+extern PFNGLDRAWARRAYSINSTANCEDPROC ply_glDrawArraysInstanced;
+extern PFNGLENABLEVERTEXATTRIBARRAYPROC ply_glEnableVertexAttribArray;
+extern PFNGLFRAMEBUFFERTEXTURE2DPROC ply_glFramebufferTexture2D;
+extern PFNGLGENBUFFERSPROC ply_glGenBuffers;
+extern PFNGLGENFRAMEBUFFERSPROC ply_glGenFramebuffers;
+extern PFNGLGENVERTEXARRAYSPROC ply_glGenVertexArrays;
+extern PFNGLGETPROGRAMINFOLOGPROC ply_glGetProgramInfoLog;
+extern PFNGLGETPROGRAMIVPROC ply_glGetProgramiv;
+extern PFNGLGETSHADERINFOLOGPROC ply_glGetShaderInfoLog;
+extern PFNGLGETSHADERIVPROC ply_glGetShaderiv;
+extern PFNGLGETUNIFORMLOCATIONPROC ply_glGetUniformLocation;
+extern PFNGLLINKPROGRAMPROC ply_glLinkProgram;
+extern PFNGLSHADERSOURCEPROC ply_glShaderSource;
+extern PFNGLTEXBUFFERPROC ply_glTexBuffer;
+extern PFNGLUNIFORM1FPROC ply_glUniform1f;
+extern PFNGLUNIFORM1IPROC ply_glUniform1i;
+extern PFNGLUNIFORM2FPROC ply_glUniform2f;
+extern PFNGLUNIFORM3FPROC ply_glUniform3f;
+extern PFNGLUNIFORMMATRIX4FVPROC ply_glUniformMatrix4fv;
+extern PFNGLUSEPROGRAMPROC ply_glUseProgram;
+extern PFNGLVERTEXATTRIBDIVISORPROC ply_glVertexAttribDivisor;
+extern PFNGLVERTEXATTRIBIPOINTERPROC ply_glVertexAttribIPointer;
+extern PFNGLVERTEXATTRIBPOINTERPROC ply_glVertexAttribPointer;
+extern PFNGLDELETEBUFFERSPROC ply_glDeleteBuffers;
+extern PFNGLDELETEVERTEXARRAYSPROC ply_glDeleteVertexArrays;
+extern PFNGLDELETEFRAMEBUFFERSPROC ply_glDeleteFramebuffers;
+
+#define glActiveTexture ply_glActiveTexture
+#define glAttachShader ply_glAttachShader
+#define glBindBuffer ply_glBindBuffer
+#define glBindFramebuffer ply_glBindFramebuffer
+#define glBindVertexArray ply_glBindVertexArray
+#define glBufferData ply_glBufferData
+#define glBufferSubData ply_glBufferSubData
+#define glCompileShader ply_glCompileShader
+#define glCreateProgram ply_glCreateProgram
+#define glCreateShader ply_glCreateShader
+#define glDeleteProgram ply_glDeleteProgram
+#define glDeleteShader ply_glDeleteShader
+#define glDrawArraysInstanced ply_glDrawArraysInstanced
+#define glEnableVertexAttribArray ply_glEnableVertexAttribArray
+#define glFramebufferTexture2D ply_glFramebufferTexture2D
+#define glGenBuffers ply_glGenBuffers
+#define glGenFramebuffers ply_glGenFramebuffers
+#define glGenVertexArrays ply_glGenVertexArrays
+#define glGetProgramInfoLog ply_glGetProgramInfoLog
+#define glGetProgramiv ply_glGetProgramiv
+#define glGetShaderInfoLog ply_glGetShaderInfoLog
+#define glGetShaderiv ply_glGetShaderiv
+#define glGetUniformLocation ply_glGetUniformLocation
+#define glLinkProgram ply_glLinkProgram
+#define glShaderSource ply_glShaderSource
+#define glTexBuffer ply_glTexBuffer
+#define glUniform1f ply_glUniform1f
+#define glUniform1i ply_glUniform1i
+#define glUniform2f ply_glUniform2f
+#define glUniform3f ply_glUniform3f
+#define glUniformMatrix4fv ply_glUniformMatrix4fv
+#define glUseProgram ply_glUseProgram
+#define glVertexAttribDivisor ply_glVertexAttribDivisor
+#define glVertexAttribIPointer ply_glVertexAttribIPointer
+#define glVertexAttribPointer ply_glVertexAttribPointer
+#define glDeleteBuffers ply_glDeleteBuffers
+#define glDeleteVertexArrays ply_glDeleteVertexArrays
+#define glDeleteFramebuffers ply_glDeleteFramebuffers
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
